@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+
+# Transcripts and uploads (if you don’t want to commit user data)
+transcripts/
+uploads/
+
+# Whisper virtual environment
+whisper_env/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Nodemon config if you want
+nodemon.json
+
+# IDE/editor files
+.vscode/
+*.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# MacOS
+.DS_Store
