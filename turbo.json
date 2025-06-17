@@ -3,7 +3,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/"]
+    },
+    "start:whisper": {
+      "cache": false,
+      "dependsOn": ["install"]
+    },
+    "test:whisper": {
+      "cache": false
     },
     "dev": {
       "cache": false,
@@ -18,6 +25,9 @@
     },
     "lint": {},
     "format": {},
-    "test": {}
+    "test": {},
+    "install": {
+      "cache": false
+    }
   }
 }
