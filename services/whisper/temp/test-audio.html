@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Record + Visualize Audio</title>
+</head>
+<body>
+  <h2>🎙️ Mic Recorder + Volume Visualizer</h2>
+  <button id="startBtn">Start Recording</button>
+  <button id="stopBtn" disabled>Stop Recording</button>
+  <p><strong>Volume:</strong> <span id="volume">0</span></p>
+  <audio id="player" controls></audio>
+  <a id="downloadLink" href="#" download="recording.webm" style="display:none">Download Recording</a>
+
+  <script>
+    let mediaRecorder, analyser, source, audioContext;
+    let recordedChunks = [];
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const volumeDisplay = document.getElementById("volume");
+    const player = document.getElementById("player");
+    const downloadLink = document.getElementById("downloadLink");
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // 📦 MediaRecorder part
+      mediaRecorder = new MediaRecorder(stream);
+      recordedChunks = [];
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        player.src = url;
+        downloadLink.href = url;
+        downloadLink.style.display = 'inline';
+      };
+
+      mediaRecorder.start();
+      console.log("Recording started");
+
+      // 🎛 Web Audio API part
+      audioContext = new AudioContext();
+      source = audioContext.createMediaStreamSource(stream);
+      analyser = audioContext.createAnalyser();
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      function updateVolume() {
+        analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        volumeDisplay.textContent = avg.toFixed(2);
+        requestAnimationFrame(updateVolume);
+      }
+
+      updateVolume();
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      mediaRecorder.stop();
+      audioContext.close();
+
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      console.log("Recording stopped");
+    };
+  </script>
+</body>
+</html>

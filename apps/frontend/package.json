@@ -1,0 +1,8 @@
+{
+  "name": "@poll-automation/frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'frontend dev server not ready yet'"
+  }
+}
