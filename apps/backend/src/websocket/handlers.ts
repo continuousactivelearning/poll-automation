@@ -29,7 +29,7 @@ export const handleSocketMessage = async (
       console.log(`[Backend WS] Forwarding audio (${audioBuffer.length} bytes) to Whisper...`);
 
       const transcription = await forwardToWhisper(audioBuffer, sessionMeta);
-      console.log("[Backend WS] Transcription received:", transcription);
+      //console.log("[Backend WS] Transcription received:", transcription);
 
       ws.send(JSON.stringify(transcription));
     }
