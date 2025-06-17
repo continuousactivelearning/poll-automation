@@ -1,12 +1,21 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import uuid, json, os
+import uuid, json, os, time
+from datetime import timedelta
 from faster_whisper import WhisperModel
+import torch
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 
 app = FastAPI()
 
 print("[Whisper] Loading model...")
-model = WhisperModel("base", compute_type="int8", device="cpu")
-print("[Whisper] Model loaded.")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+compute_type = "float16" if device == "cuda" else "int8"
+model = WhisperModel("base", compute_type=compute_type, device=device)
+print(f"[Whisper] Model loaded on {device} with {compute_type}", flush=True)
+
+def format_duration(seconds: float) -> str:
+    return str(timedelta(seconds=round(seconds)))
 
 @app.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
@@ -25,12 +34,20 @@ async def websocket_endpoint(websocket: WebSocket):
             print(f"[Whisper WS] Audio saved to {filename}")
 
             print("[Whisper WS] Starting transcription...")
-            segments, _ = model.transcribe(filename)
+            start_time = time.time()
+
+            segments, info = model.transcribe(filename)
             text = ' '.join([seg.text for seg in segments])
-            print(f"[Whisper WS] Transcription done: {text.strip()[:80]}...")
+
+            end_time = time.time()
+            processing_time = end_time - start_time
 
             os.remove(filename)
             print(f"[Whisper WS] Deleted temp file: {filename}")
+
+            print(f"[Whisper WS] Transcription done: {text.strip()[:80]}...")
+            print(f"[Whisper WS] Audio Length    : {format_duration(info.duration)}")
+            print(f"[Whisper WS] Processing Time : {format_duration(processing_time)}\n")
 
             await websocket.send_text(json.dumps({
                 "type": "transcription",
