@@ -3,6 +3,10 @@ import { createServer } from 'http';
 import transcriptionRoutes from './transcription/routes';
 import webRoutes from './web/routes';
 import { initializeWebSocketServer } from './websocket/connection';
+import { initializeWhisperWebSocket } from './transcription/services/whisperWebSocket';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const server = createServer(app);
@@ -17,6 +21,9 @@ app.get('/health', (req, res) => {
 });
 
 initializeWebSocketServer(server);
+initializeWhisperWebSocket().catch((error) => {
+  console.error('Failed to initialize Whisper WebSocket:', error);
+});
 
 server.listen(PORT, () => {
   console.log(`Server running with WebSocket on port ${PORT}`);

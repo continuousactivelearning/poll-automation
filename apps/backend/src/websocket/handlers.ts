@@ -1,28 +1,26 @@
-import { AudioChunkMessage } from '../../../../shared/types/src';
 import { WebSocket } from 'ws';
-import axios from 'axios';
+import { AudioChunkMessage, TranscriptionMessage } from '@poll-automation/types';
+import { sendAudioChunk } from '../transcription/services/whisperWebSocket';
+import { broadcastToMeeting } from '../transcription/services/connections';
 
 export async function handleMessage(ws: WebSocket, message: AudioChunkMessage) {
   if (message.type === 'audio_chunk') {
     try {
-      const response = await axios.post('http://localhost:8000/transcribe', {
-        audio: message.audio,
+      const result = await sendAudioChunk(message);
+      const transcription: TranscriptionMessage = {
+        type: 'transcription',
         meetingId: message.meetingId,
+        speakerId: message.speakerId,
         speaker: message.speaker,
-      });
+        text: result.text,
+        timestamp: Date.now(),
+      };
 
-      const result = response.data;
-
-      ws.send(
-        JSON.stringify({
-          type: 'transcription',
-          meetingId: message.meetingId,
-          speaker: message.speaker,
-          text: result.text,
-        })
-      );
+      // Broadcast to all clients in the meeting
+      broadcastToMeeting(message.meetingId, JSON.stringify(transcription));
     } catch (error) {
       console.error('Error transcribing audio:', error);
+      ws.send(JSON.stringify({ type: 'error', message: 'Transcription failed' }));
     }
   }
 }

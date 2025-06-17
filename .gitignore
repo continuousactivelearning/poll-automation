@@ -53,4 +53,4 @@ build/
 .DS_Store
 
 # Faster Whisper environment
-services/whisper/whisper-env/
+services/whisper/venv/

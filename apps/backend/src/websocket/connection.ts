@@ -3,7 +3,7 @@ import { handleMessage } from './handlers';
 
 const clients = new Map<WebSocket, { meetingId: string; speaker: string }>();
 
-export function initializeWebSocketServer(server: any) {
+export function initializeWebSocketServer(server: import('http').Server | import('https').Server) {
   const wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws: WebSocket) => {
