@@ -1,28 +1,24 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { handleMessage } from './handlers';
+// connection.ts
+import { WebSocketServer } from 'ws';
+import { handleSocketMessage } from './handlers';
 
-const clients = new Map<WebSocket, { meetingId: string; speaker: string }>();
-
-export function initializeWebSocketServer(server: any) {
+export const setupWebSocketServer = (server: import('http').Server) => {
   const wss = new WebSocketServer({ server });
 
-  wss.on('connection', (ws: WebSocket) => {
-    console.log('New WebSocket connection');
+  wss.on('connection', (ws) => {
+    console.log("[Backend WS] Client connected");
 
-    ws.on('message', (data: Buffer) => {
-      try {
-        const message = JSON.parse(data.toString());
-        handleMessage(ws, message);
-      } catch (error) {
-        console.error('Invalid message received:', error);
-      }
+    ws.on('message', (data, isBinary) => {
+      console.log(`[Backend WS] Message received (${isBinary ? "binary" : "text"})`);
+      handleSocketMessage(ws, data, isBinary);
     });
 
     ws.on('close', () => {
-      console.log('Client disconnected');
-      clients.delete(ws);
+      console.log("[Backend WS] Client disconnected");
+    });
+
+    ws.on('error', (err) => {
+      console.error("[Backend WS] Error:", err);
     });
   });
-
-  return wss;
-}
+};

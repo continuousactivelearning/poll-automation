@@ -1,28 +1,39 @@
-import { AudioChunkMessage } from '../../../../shared/types/src';
-import { WebSocket } from 'ws';
-import axios from 'axios';
+// handlers.ts
+import WebSocket, { RawData } from 'ws';
+import { forwardToWhisper } from '../transcription/services/whisper';
 
-export async function handleMessage(ws: WebSocket, message: AudioChunkMessage) {
-  if (message.type === 'audio_chunk') {
-    try {
-      const response = await axios.post('http://localhost:8000/transcribe', {
-        audio: message.audio,
-        meetingId: message.meetingId,
-        speaker: message.speaker,
-      });
+let sessionMeta: { meetingId: string; speaker: string } | null = null;
 
-      const result = response.data;
+export const handleSocketMessage = async (
+  ws: WebSocket,
+  data: RawData,
+  isBinary: boolean
+) => {
+  try {
+    if (!isBinary) {
+      const msg = JSON.parse(data.toString());
+      if (msg.type === 'start') {
+        sessionMeta = {
+          meetingId: msg.meetingId,
+          speaker: msg.speaker,
+        };
+        console.log(`[Backend WS] Session started:`, sessionMeta);
+      }
+    } else {
+      if (!sessionMeta) {
+        console.warn('[Backend WS] Audio received before metadata.');
+        return;
+      }
 
-      ws.send(
-        JSON.stringify({
-          type: 'transcription',
-          meetingId: message.meetingId,
-          speaker: message.speaker,
-          text: result.text,
-        })
-      );
-    } catch (error) {
-      console.error('Error transcribing audio:', error);
+      const audioBuffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+      console.log(`[Backend WS] Forwarding audio (${audioBuffer.length} bytes) to Whisper...`);
+
+      const transcription = await forwardToWhisper(audioBuffer, sessionMeta);
+      console.log("[Backend WS] Transcription received:", transcription);
+
+      ws.send(JSON.stringify(transcription));
     }
+  } catch (err) {
+    console.error('[Backend WS] Error in message handler:', err);
   }
-}
+};

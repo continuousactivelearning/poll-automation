@@ -1,25 +1,20 @@
-import express from 'express';
-import { createServer } from 'http';
-import transcriptionRoutes from './transcription/routes';
-import webRoutes from './web/routes';
-import { initializeWebSocketServer } from './websocket/connection';
+import express from 'express'
+import http from 'http'
+import { setupWebSocketServer } from './websocket/connection'
+import dotenv from 'dotenv'
 
-const app = express();
-const server = createServer(app);
-const PORT = process.env.PORT || 3000;
+dotenv.config()
 
-app.use(express.json());
-app.use('/transcription', transcriptionRoutes);
-app.use('/api', webRoutes);
+const app = express()
+const server = http.createServer(app)
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
-});
+setupWebSocketServer(server)
 
-initializeWebSocketServer(server);
+app.get('/', (_req, res) => {
+  res.send('PollGen Backend is running.')
+})
 
+const PORT = process.env.PORT || 3000
 server.listen(PORT, () => {
-  console.log(`Server running with WebSocket on port ${PORT}`);
-});
-
-export { app };
+  console.log(`🚀 Server running on http://localhost:${PORT}`)
+})
