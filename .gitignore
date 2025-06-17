@@ -1,0 +1,56 @@
+# Node.js
+node_modules/
+dist/
+.build/
+.cache/
+*.log
+
+# Turborepo cache
+turbo/
+.turbo/
+
+# Package manager lockfiles
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Test coverage / test reports
+coverage/
+*.lcov
+.vitest/
+jest-cache/
+jest-*
+
+# GitHub workflows artifacts (optional)
+.github/workflows/*.log
+
+# Build output (if applicable)
+build/
+
+# Misc (MacOS / others)
+.DS_Store
+
+# Faster Whisper environment
+services/whisper/whisper-env/

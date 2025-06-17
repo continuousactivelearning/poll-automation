@@ -1,0 +1,7 @@
+{
+  "name": "@poll-automation/pollgen-llm",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'No dev server for pollgen-llm'"
+  }
+}
