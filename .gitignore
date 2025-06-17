@@ -1,0 +1,39 @@
+# Node.js
+node_modules/
+dist/
+.build/
+.cache/
+*.log
+
+# Turborepo cache
+turbo/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Coverage / test reports
+coverage/
+*.lcov
+
+# GitHub workflows artifacts (optional)
+.github/workflows/*.log
