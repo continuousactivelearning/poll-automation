@@ -75,67 +75,6 @@ io.on('connection', (socket) => {
     console.log(`Answer submitted for poll ${pollId} in meeting ${meetingId}`);
   });
 
-  // Real-time audio streaming events
-  socket.on('start-audio-stream', (data: any) => {
-    const { meetingId, hostId } = data;
-    socket.join(`audio-${meetingId}`);
-    console.log(`Audio stream started for meeting ${meetingId} by host ${hostId}`);
-
-    // Notify participants that audio streaming has started
-    io.to(meetingId).emit('audio-stream-started', { hostId, timestamp: new Date().toISOString() });
-  });
-
-  socket.on('audio-chunk', async (data: any) => {
-    const { meetingId, audioChunk, chunkIndex, timestamp } = data;
-    console.log(`Received audio chunk ${chunkIndex} for meeting ${meetingId}`);
-
-    // Real-time AI processing of audio chunk
-    try {
-      // Convert audio chunk back to buffer for processing
-      const audioBuffer = Buffer.from(audioChunk);
-
-      // For demo: simulate real-time AI processing
-      const partialTranscript = await processAudioChunkRealtime(audioBuffer, chunkIndex);
-
-      // Send real-time results to all participants
-      io.to(meetingId).emit('realtime-transcript-update', {
-        chunkIndex,
-        partialTranscript,
-        timestamp,
-        isPartial: true
-      });
-
-      // Check if we have enough chunks for a poll question
-      if (chunkIndex > 0 && chunkIndex % 5 === 0) { // Every 5 seconds
-        const realtimePoll = await generateRealtimePoll(partialTranscript, chunkIndex);
-        io.to(meetingId).emit('realtime-poll-generated', {
-          poll: realtimePoll,
-          chunkIndex,
-          timestamp
-        });
-      }
-
-    } catch (error) {
-      console.error('Real-time AI processing error:', error);
-    }
-
-    // Also relay to other participants for monitoring
-    socket.to(`audio-${meetingId}`).emit('audio-chunk-received', {
-      chunkIndex,
-      timestamp,
-      size: audioChunk.length
-    });
-  });
-
-  socket.on('stop-audio-stream', (data: any) => {
-    const { meetingId, hostId } = data;
-    console.log(`Audio stream stopped for meeting ${meetingId}`);
-
-    // Notify participants that audio streaming has stopped
-    io.to(meetingId).emit('audio-stream-stopped', { hostId, timestamp: new Date().toISOString() });
-    socket.leave(`audio-${meetingId}`);
-  });
-
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);

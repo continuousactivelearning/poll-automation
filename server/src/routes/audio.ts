@@ -50,10 +50,6 @@ async function transcribeAudio(filePath: string): Promise<string> {
     return "This is a demo transcript. In this meeting, we discussed React hooks, specifically useState for managing component state and useEffect for handling side effects like API calls. We also covered the importance of proper state management in React applications.";
   }
 
-  // Temporary: Force demo mode to preserve API quota during testing
-  console.log('Using demo mode to preserve API quota during testing');
-  return "Demo transcript: In this educational session, we covered advanced JavaScript concepts including async/await patterns, Promise handling, and modern ES6+ features. We also discussed best practices for API integration and error handling in web applications.";
-
   try {
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(filePath),
@@ -101,38 +97,6 @@ async function generatePollQuestions(transcript: string): Promise<any[]> {
       }
     ];
   }
-
-  // Temporary: Force demo mode to preserve API quota during testing
-  console.log('Using demo poll questions to preserve API quota during testing');
-  return [
-    {
-      question: "What advanced JavaScript concept was discussed regarding asynchronous programming?",
-      options: ["Callbacks only", "Async/await patterns", "Synchronous loops", "Global variables"],
-      correctAnswer: 1,
-      difficulty: "Medium",
-      category: "JavaScript Advanced",
-      explanation: "Async/await provides a cleaner way to handle asynchronous operations compared to callbacks."
-    },
-    {
-      question: "Which ES6+ feature was highlighted for modern JavaScript development?",
-      options: ["var declarations", "Promise handling", "eval() usage", "with statements"],
-      correctAnswer: 1,
-      difficulty: "Easy",
-      category: "ES6+ Features",
-      explanation: "Promises are essential for handling asynchronous operations in modern JavaScript."
-    },
-    {
-      question: "What was emphasized as a best practice for API integration?",
-      options: ["Ignore errors", "Proper error handling", "Use global variables", "Avoid validation"],
-      correctAnswer: 1,
-      difficulty: "Medium",
-      category: "API Best Practices",
-      explanation: "Proper error handling ensures robust applications that can gracefully handle failures."
-    }
-  ];
-
-  // Note: The code below is unreachable due to the early return above
-  // This is intentional for demo mode during testing
 
   try {
     const prompt = `

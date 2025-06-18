@@ -19,7 +19,6 @@ interface SocketContextType {
   isConnected: boolean;
   currentMeetingId: string | null;
   activePoll: Poll | null;
-  socket: any;
   connectSocket: () => void;
   disconnectSocket: () => void;
   joinMeeting: (meetingId: string) => void;
@@ -44,19 +43,17 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnected, setIsConnected] = useState(false);
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
   const [activePoll, setActivePoll] = useState<Poll | null>(null);
-  const [socket, setSocket] = useState<any>(null);
 
   const connectSocket = () => {
-    const socketInstance = socketService.connect();
-    setSocket(socketInstance);
+    const socket = socketService.connect();
     setIsConnected(true);
 
-    socketInstance.on('connect', () => {
+    socket.on('connect', () => {
       console.log('Socket connected');
       setIsConnected(true);
     });
 
-    socketInstance.on('disconnect', () => {
+    socket.on('disconnect', () => {
       console.log('Socket disconnected');
       setIsConnected(false);
     });
@@ -77,7 +74,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const disconnectSocket = () => {
     socketService.disconnect();
-    setSocket(null);
     setIsConnected(false);
     setCurrentMeetingId(null);
     setActivePoll(null);
@@ -123,7 +119,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     isConnected,
     currentMeetingId,
     activePoll,
-    socket,
     connectSocket,
     disconnectSocket,
     joinMeeting,
