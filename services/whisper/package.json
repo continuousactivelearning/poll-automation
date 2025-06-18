@@ -1,0 +1,12 @@
+{
+  "name": "@poll-automation/whisper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Python FastAPI service for real-time audio transcription using Faster Whisper",
+  "scripts": {
+    "setup": "python -m venv whisper-env",
+    "install-deps": "whisper-env\\Scripts\\pip install -r requirements.txt",
+    "dev": "whisper-env\\Scripts\\python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "test": "whisper-env\\Scripts\\python -m pytest tests"
+  }
+}

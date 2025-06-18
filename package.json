@@ -1,49 +1,23 @@
 {
-  "name": "pollgen-ai-monorepo",
+  "name": "poll-automation",
   "version": "1.0.0",
   "description": "🎤 AI-powered educational platform that generates intelligent poll questions from voice recordings",
+  "main": "index.js",
   "private": true,
   "workspaces": [
-    "packages/client",
-    "packages/server",
-    "packages/shared"
+    "apps/*",
+    "services/*",
+    "shared/*",
+    "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev": "turbo run dev",
+    "dev:legacy": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "npm run start --workspace=packages/client",
     "dev:server": "npm run dev --workspace=packages/server",
-    "build": "npm run build --workspaces",
-    "build:client": "npm run build --workspace=packages/client",
-    "build:server": "npm run build --workspace=packages/server",
-    "start": "npm run start --workspace=packages/server",
-    "start:client": "npm run start --workspace=packages/client",
-    "start:server": "npm run start --workspace=packages/server",
-    "test": "npm run test --workspaces",
-    "test:client": "npm run test --workspace=packages/client",
-    "test:server": "npm run test --workspace=packages/server",
-    "lint": "npm run lint --workspaces",
-    "lint:fix": "npm run lint:fix --workspaces",
-    "clean": "npm run clean --workspaces && rimraf node_modules",
-    "install:all": "npm install",
-    "setup": "npm run install:all && npm run build",
-    "docker:build": "docker-compose build",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "deploy": "npm run build && npm run docker:build"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2",
-    "rimraf": "^5.0.5",
-    "@types/node": "^20.8.9",
-    "typescript": "^5.2.2"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gayathri-1911/pollgeneration.git"
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
   },
   "keywords": [
     "ai",
@@ -58,8 +32,23 @@
   ],
   "author": "chaiayabaggam <chaitanyabaggam3@gmail.com>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/gayathri-1911/pollgeneration/issues"
+  "packageManager": "pnpm@10.12.1",
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
   },
-  "homepage": "https://github.com/gayathri-1911/pollgeneration#readme"
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gayathri-1911/poll-automation.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gayathri-1911/poll-automation/issues"
+  },
+  "homepage": "https://github.com/gayathri-1911/poll-automation#readme"
 }
