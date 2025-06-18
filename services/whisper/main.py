@@ -2,14 +2,22 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import uuid, json, os, time
 from datetime import timedelta
 from faster_whisper import WhisperModel
-import torch
 import sys
+
 sys.stdout.reconfigure(line_buffering=True)
 
 app = FastAPI()
 
 print("[Whisper] Loading model...")
-device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Lazy torch import with fallback
+try:
+    import torch
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+except ImportError:
+    print("[Warning] torch not installed, defaulting to CPU")
+    device = "cpu"
+
 compute_type = "float16" if device == "cuda" else "int8"
 model = WhisperModel("base", compute_type=compute_type, device=device)
 print(f"[Whisper] Model loaded on {device} with {compute_type}", flush=True)

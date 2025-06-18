@@ -45,12 +45,29 @@ python3 -m venv whisper-env
 source whisper-env/bin/activate
 ```
 
-3. **Install dependencies from `requirements.txt`:**
+3.1 **For CPU-only**
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
+````
+
+This installs everything except large GPU-related packages like `torch`.
+Useful for quickly running the backend in **CPU mode** for testing or development.
+
+
+3.2 **⚡ For GPU support (CUDA 12.1)**
+
+If you have a CUDA-enabled GPU and want to use GPU acceleration:
+
+```bash
+pip install -r requirements.gpu.txt --extra-index-url https://download.pytorch.org/whl/cu121
 ```
+
+This will install `torch`, `torchaudio`, and `torchvision` with CUDA 12.1 support.
+Make sure your system has the correct CUDA runtime installed.
+
+
 ## 🔧 .env Configuration
 
 ### `apps/backend/.env`
