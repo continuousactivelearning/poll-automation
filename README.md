@@ -2,8 +2,6 @@
 
 Poll Automation App is a standalone, open-source web application designed to intelligently generate and manage live polls in real-time during lectures, webinars, or meetings — without being tied to any specific video conferencing platform.
 
----
-
 ## 📁 Monorepo Folder Structure (Turborepo)
 
 ```
@@ -23,81 +21,9 @@ poll-automation/
 ├── turbo.json            # Turborepo pipeline config
 ├── .gitignore
 └── README.md
-
 ```
-
----
 
 ## 🚀 Getting Started
-
-### Global Prerequisites
-
-Install `pnpm` and `turbo` globally (once):
-
-
-```
-npm install -g pnpm
-pnpm add -g turbo
-```
-Check versions:
-
-
-```
-pnpm -v
-turbo --version
-```
-
-### 1. Install Dependencies
-
-
-
-```
-pnpm install
-```
-
-### 2. Run All Dev Servers (Frontend + Backend)
-
-
-pnpm dev
-```
-
-*(Make sure each app has its own `dev` script defined in its `package.json`)*
-
----
-
-## 📦 Using Turborepo
-
-* `pnpm build` → Build all apps/services
-* `pnpm lint` → Lint all projects
-* `pnpm test` → Run tests
-* `turbo run <task>` → Run any task across monorepo
-
----
-
-## 📌 Notes
-
-* Powered by `pnpm` workspaces + `Turborepo`
-* Modular folder structure for scalable dev
-* Each service/app can run independently or be combined via CI/CD
----
-###
-```
-## 🧠 `services/whisper/` – Faster Whisper Setup (Audio Transcription)
-
-This guide helps you set up Whisper or Faster-Whisper in a Python environment on Windows, allowing you to transcribe audio files using the model locally.
-
-📦 1. Requirements
-Python 3.8 or higher
-
-Git (if using OpenAI Whisper)
-
-FFmpeg (for audio decoding)
-
-Recommended: Virtual environment
-
----
-
-This Python service uses [Faster-Whisper](https://github.com/guillaumekln/faster-whisper) for real-time transcription of meeting audio using Whisper models optimized via CTranslate2.
 
 ### 🔧 Python Environment Setup
 
@@ -107,7 +33,7 @@ This Python service uses [Faster-Whisper](https://github.com/guillaumekln/faster
 cd services/whisper
 ```
 
-2. **Create a Python Virtual Environment:**
+2. **Create and activate a Python virtual environment:**
 
 ```bash
 # Windows
@@ -119,50 +45,76 @@ python3 -m venv whisper-env
 source whisper-env/bin/activate
 ```
 
-3. **Upgrade pip and install dependencies:**
+3. **Install dependencies from `requirements.txt`:**
 
 ```bash
 pip install --upgrade pip
-pip install faster-whisper
+pip install -r requirements.txt
+```
+## 🔧 .env Configuration
+
+### `apps/backend/.env`
+
+```
+PORT=3000
+WHISPER_WS_URL=ws://localhost:8000
 ```
 
-4. **Test Installation:**
+### `apps/frontend/.env`
 
-Run a quick test script (optional):
-
-```python
-# test_whisper.py
-from faster_whisper import WhisperModel
-
-model = WhisperModel("base", compute_type="float32")
-segments, _ = model.transcribe("sample-audio.mp3")
-
-for segment in segments:
-    print(f"[{segment.start:.2f} -> {segment.end:.2f}] {segment.text}")
+```
+VITE_BACKEND_WS_URL=ws://localhost:3000
 ```
 
-Then run it:
+### Global Prerequisites
+**Navigate to the root directory:**
+
+Install `pnpm` and `turbo` globally (once):
 
 ```bash
-python test_whisper.py
+npm install -g pnpm
+pnpm add -g turbo
 ```
-
-5. **Model Download Note:**
-
-The first time you run, the model (e.g., `"base"`) will download from HuggingFace. You can also download manually or cache using:
+### 1. Install dependencies
 
 ```bash
-from faster_whisper import WhisperModel
-model = WhisperModel("base", download_root="./models")
+pnpm install
 ```
 
-6. **Recommended GPU Setup (Optional):**
-
-To leverage GPU and faster inference:
+### 2. Start all dev servers
 
 ```bash
-# Float16 for GPU (if supported)
-model = WhisperModel("base", compute_type="float16")
+pnpm dev
 ```
+This starts:
 
----
+* ✅ *Frontend* → [http://localhost:5173](http://localhost:5173)
+* ✅ *Backend (WebSocket server)* → ws\://localhost:3000
+* ✅ *Whisper Transcription Service* → ws\://localhost:8000 (Python FastAPI)
+
+> Make sure the Python environment is set up correctly (faster-whisper, uvicorn, etc.)
+
+## 🛆 Using Turborepo
+
+* `pnpm build` → Build all apps/services
+* `pnpm lint` → Lint all projects
+* `pnpm test` → Run tests
+* `turbo run <task>` → Run any task across monorepo
+
+
+## 🗣 Phase 1 – Transcription Pipeline
+
+> This outlines the current real-time transcription flow:
+
+1. **Frontend** records or selects a `.wav` file and sends it over WebSocket (binary + metadata).
+2. **Backend** WebSocket server receives and forwards it to the Whisper service.
+3. **Whisper Service** processes audio using Faster-Whisper and returns transcription in JSON.
+4. **Backend** sends transcription JSON back to the frontend or passes it to the LLM service.
+
+> Currently, the transcription is **not displayed** to the user – it is **used internally** to generate polls using an LLM.
+
+📅 Upcoming Phases:
+
+* Phase 2: LLM-based Poll Generation
+* Phase 3: Realtime Poll Launch and Analytics
+
