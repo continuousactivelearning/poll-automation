@@ -16,7 +16,8 @@
     "dev:transcription": "nodemon src/transcription/index.ts",
     "lint": "eslint src/**/* --fix",
     "format": "prettier --write src/**/*",
-    "test": "jest"
+    "test": "jest",
+    "test:client": "ts-node test-client.ts"
   },
   "keywords": [],
   "author": "",
