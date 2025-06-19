@@ -54,3 +54,8 @@ build/
 
 # Faster Whisper environment
 services/whisper/whisper-env/
+.clipignore
+codeclip_20250618_231429.txt
+codeclip.py
+services/whisper/setup.bat
+services/whisper/__pycache__
