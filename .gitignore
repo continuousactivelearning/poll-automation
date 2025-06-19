@@ -79,3 +79,4 @@ pnpm-lock.yaml
 services/whisper/~
 services/whisper/__pycache__
 .vscode
+services/whisper/install_pytorch.py
