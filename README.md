@@ -27,7 +27,6 @@ poll-automation/
 └── README.md
 </pre>
 
-\`\`\`
 
 ---
 
