@@ -14,3 +14,6 @@ codeclip_20250618_231429.txt
 codeclip.py
 .clipignore
 pnpm-lock.yaml
+services/whisper/~
+services/whisper/__pycache__
+.vscode

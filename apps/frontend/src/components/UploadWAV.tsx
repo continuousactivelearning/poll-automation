@@ -1,18 +1,8 @@
 // Example React Component
 import React, { useState, useRef } from 'react';
-import { MicrophoneStreamer } from '../utils/microphoneStream'; // Adjust path
-
-// Import the TranscriptionResult type from microphoneStream to match the interface
-interface TranscriptionResult {
-    type: string;
-    meetingId: string;
-    speaker: string;
-    text: string;
-    segment_start: number;
-    segment_end: number;
-    language: string;
-    is_final: boolean;
-}
+import { MicrophoneStreamer } from '../utils/microphoneStream'; // Adjust path as needed
+// Correct import for TranscriptionResult from the shared types
+import type { TranscriptionResult } from '../../../../shared/types/src/websocket'; // Adjust path based on monorepo
 
 const LiveTranscriptionComponent: React.FC = () => {
     const [transcriptions, setTranscriptions] = useState<string[]>([]);
@@ -25,7 +15,10 @@ const LiveTranscriptionComponent: React.FC = () => {
     const handleTranscription = (data: TranscriptionResult) => {
         console.log("Received transcription:", data.text);
         // You'll likely want to display these incrementally
-        setTranscriptions(prev => [...prev, data.text]); 
+        // For real-time updates, you might append to a single mutable string
+        // or replace the last entry if it's a partial update.
+        // For now, simply adding new lines:
+        setTranscriptions(prev => [...prev, data.text]);
         // Logic for poll generation based on data.text can go here
         // e.g., check for keywords: if (data.text.toLowerCase().includes("poll")) { triggerPoll(); }
     };
@@ -57,7 +50,7 @@ const LiveTranscriptionComponent: React.FC = () => {
 
     const stopRecording = () => {
         streamerRef.current?.stopStreaming(true); // Send 'end' signal
-        setIsRecording(false);
+        setIsRecording(false); // UI state update immediately
     };
 
     return (

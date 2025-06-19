@@ -1,7 +1,10 @@
-// apps/frontend/src/utils/uploadAndStream.ts (Adjusted for explicit 'end' signal and final message handling)
+// apps/frontend/src/utils/uploadAndStream.ts
+// Use the shared TranscriptionResult type for consistency
+import type { TranscriptionResult, StartMessage, EndMessage } from '../../../../shared/types/src/websocket'; // Adjust path
+
 const WS_URL = import.meta.env.VITE_BACKEND_WS_URL || "ws://localhost:3000";
 
-const CHUNK_SIZE = 4096; // Define your desired chunk size (e.g., 4KB)
+const UPLOAD_CHUNK_BYTE_SIZE = 4096; // Define your desired chunk size in BYTES (e.g., 4KB)
 
 export async function uploadAndStreamWAV(file: File, meetingId: string, speaker: string) {
     return new Promise<void>((resolve, reject) => {
@@ -12,7 +15,7 @@ export async function uploadAndStreamWAV(file: File, meetingId: string, speaker:
             console.log("[Frontend→Backend WS] Connected to backend.");
 
             // 1. Send the initial "start" message with metadata
-            const metadata = { type: "start", meetingId, speaker };
+            const metadata: StartMessage = { type: "start", meetingId, speaker }; // Use StartMessage type
             console.log("[Frontend→Backend WS] Sending metadata:", metadata);
             socket.send(JSON.stringify(metadata));
 
@@ -33,7 +36,8 @@ export async function uploadAndStreamWAV(file: File, meetingId: string, speaker:
                 } else {
                     console.log("[Frontend→Backend WS] Finished sending audio file chunks.");
                     // --- NEW: Send an explicit 'end' signal ---
-                    socket.send(JSON.stringify({ type: "end", meetingId, speaker }));
+                    const endMessage: EndMessage = { type: "end", meetingId, speaker }; // Use EndMessage type
+                    socket.send(JSON.stringify(endMessage));
                     // Do NOT close the socket here. Wait for the backend to send final results.
                 }
             };
@@ -45,7 +49,7 @@ export async function uploadAndStreamWAV(file: File, meetingId: string, speaker:
             };
 
             const readNextChunk = () => {
-                const slice = file.slice(offset, offset + CHUNK_SIZE);
+                const slice = file.slice(offset, offset + UPLOAD_CHUNK_BYTE_SIZE); // Use UPLOAD_CHUNK_BYTE_SIZE
                 reader.readAsArrayBuffer(slice);
             };
 
@@ -54,10 +58,10 @@ export async function uploadAndStreamWAV(file: File, meetingId: string, speaker:
 
         socket.onmessage = (event) => {
             try {
-                const data = JSON.parse(event.data as string);
+                const data: TranscriptionResult = JSON.parse(event.data as string); // Use TranscriptionResult type
                 console.log("[Frontend→Backend WS] Received transcription:", data);
                 // You can update your UI with `data.text` as partial transcriptions
-                
+
                 if (data.is_final) {
                     console.log("[Frontend→Backend WS] Received final transcription for stream. Closing socket.");
                     socket.close(); // Close after receiving the final results from the backend
