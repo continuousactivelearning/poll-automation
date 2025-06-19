@@ -13,8 +13,8 @@ export class MicrophoneStreamer {
     private scriptProcessor: ScriptProcessorNode | null = null; // Deprecated but widely supported
     private stream: MediaStream | null = null;
 
-    private reconnectTimeout: number | null = null;
-    private pingInterval: number | null = null; // For frontend pings
+    private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    private pingInterval: ReturnType<typeof setInterval> | null = null; // For frontend pings
     private stoppingManually: boolean = false; // Flag to differentiate between intentional and unintentional closes
 
     private meetingId: string;
@@ -232,35 +232,43 @@ export class MicrophoneStreamer {
         this.socket = null; // Clear socket reference
     }
 
-    private handleAudioProcess = (event: AudioProcessingEvent) => {
+    private handleAudioProcess = async (event: AudioProcessingEvent) => {
         if (!this.recording || !this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return;
         }
 
-        const inputBuffer = event.inputBuffer.getChannelData(0);
+        let inputBuffer = event.inputBuffer.getChannelData(0);
 
+        // Resample if needed
         if (this.audioContext && this.audioContext.sampleRate !== TARGET_SAMPLE_RATE) {
-            // ** IMPORTANT: Implement actual resampling here if needed. **
-            // The current code only warns and proceeds without resampling.
-            // For proper Whisper performance, audio MUST be 16kHz.
-            console.warn(
-                `[Frontend WS] AudioContext sample rate (${this.audioContext.sampleRate}) does not match ` +
-                `target sample rate (${TARGET_SAMPLE_RATE}). Resampling is required for optimal performance. ` +
-                `Current implementation does NOT resample.`
-            );
-            // Example for resampling (requires a library or custom implementation):
-            // const resampledBuffer = resampleAudio(inputBuffer, this.audioContext.sampleRate, TARGET_SAMPLE_RATE);
-            // inputBuffer = resampledBuffer; // Use the resampled buffer
+            inputBuffer = await resampleBuffer(inputBuffer, this.audioContext.sampleRate, TARGET_SAMPLE_RATE);
         }
 
         // Convert float32 audio to 16-bit PCM (signed 16-bit integers)
         const output = new Int16Array(inputBuffer.length);
         for (let i = 0; i < inputBuffer.length; i++) {
             const s = Math.max(-1, Math.min(1, inputBuffer[i]));
-            output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF; // Convert to signed 16-bit integer
+            output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
 
-        // Send as ArrayBuffer (binary)
+        // Skip silent buffers
+        const avg = inputBuffer.reduce((sum, v) => sum + Math.abs(v), 0) / inputBuffer.length;
+        if (avg < 0.01) return; // Skip silent buffers
+
         this.socket.send(output.buffer);
     };
+}
+
+// Add this helper function in your file (outside the class)
+async function resampleBuffer(buffer: Float32Array, inputSampleRate: number, targetSampleRate: number): Promise<Float32Array> {
+    if (inputSampleRate === targetSampleRate) return buffer;
+    const offlineCtx = new OfflineAudioContext(1, buffer.length * targetSampleRate / inputSampleRate, targetSampleRate);
+    const audioBuffer = offlineCtx.createBuffer(1, buffer.length, inputSampleRate);
+    audioBuffer.copyToChannel(buffer, 0);
+    const source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineCtx.destination);
+    source.start();
+    const rendered = await offlineCtx.startRendering();
+    return rendered.getChannelData(0);
 }
