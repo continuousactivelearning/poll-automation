@@ -8,6 +8,8 @@ import ParticipantInterface from './pages/ParticipantInterface';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import UploadWAV from "./components/UploadWAV";
+import { HostSettingsComponent } from "./components/HostSettings";
 import './styles/fonts.css';
 import './styles/animations.css';
 
@@ -48,6 +50,9 @@ const AppContent: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+              {/* Development routes for testing new components */}
+              <Route path="/test-upload" element={<UploadWAV />} />
+              <Route path="/test-host-settings" element={<HostSettingsComponent />} />
         </Routes>
       </div>
     </div>

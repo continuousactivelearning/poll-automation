@@ -10,6 +10,8 @@ import mongoose from 'mongoose';
 import audioRoutes from './routes/audio';
 import authRoutes from './routes/auth';
 import geminiService from './services/geminiService';
+import { setupWebSocketServer } from './websocket/connection';
+import hostSettingsRouter from './host-settings/routes';
 
 // Initialize Express app
 const app = express();
@@ -61,6 +63,7 @@ app.get('/', (req: express.Request, res: express.Response) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/audio', audioRoutes);
+app.use('/api/host-settings', hostSettingsRouter);
 
 // Socket.IO connection
 io.on('connection', (socket) => {
@@ -284,4 +287,5 @@ server.listen(PORT, () => {
   }
 });
 
-
+// Setup additional WebSocket functionality
+setupWebSocketServer(server);

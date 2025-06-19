@@ -23,8 +23,13 @@
     "test": {
       "outputs": []
     },
+    "format": {},
     "clean": {
       "cache": false
+    },
+    "install": {
+      "cache": false,
+      "persistent": true
     }
   }
 }

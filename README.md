@@ -256,9 +256,9 @@ npm run dev
 ## 📁 Monorepo Structure
 
 ```
-pollgen-ai/
-├── packages/
-│   ├── client/            # React frontend (@pollgen-ai/client)
+poll-automation/
+├── apps/
+│   ├── frontend/         # Vite React TypeScript frontend
 │   │   ├── src/
 │   │   │   ├── components/     # Reusable components
 │   │   │   ├── pages/         # Main page components
@@ -266,22 +266,22 @@ pollgen-ai/
 │   │   │   └── styles/        # CSS and animations
 │   │   ├── Dockerfile     # Client container config
 │   │   └── nginx.conf     # Nginx configuration
-│   ├── server/            # Node.js backend (@pollgen-ai/server)
-│   │   ├── src/
-│   │   │   ├── routes/        # API routes
-│   │   │   ├── models/        # Data models
-│   │   │   └── index.ts       # Server entry point
-│   │   └── Dockerfile     # Server container config
-│   └── shared/            # Shared utilities (@pollgen-ai/shared)
+│   └── backend/          # Express TypeScript backend
 │       ├── src/
-│       │   ├── types/         # TypeScript interfaces
-│       │   ├── utils/         # Common utilities
-│       │   └── constants/     # App constants
-│       └── package.json   # Shared package config
+│       │   ├── routes/        # API routes
+│       │   ├── models/        # Data models
+│       │   └── index.ts       # Server entry point
+│       └── Dockerfile     # Server container config
+├── services/
+│   ├── whisper/          # Python service for audio transcription (Whisper)
+│   └── pollgen-llm/      # Poll generation logic using API/Local LLMs
+│       └── src/
+│           └── cron/     # ⏰ Cron job for transcript polling
+├── shared/
+│   └── types/            # Shared TypeScript interfaces
 ├── scripts/               # Development scripts
-│   ├── dev.sh            # Unix development script
-│   └── dev.ps1           # Windows development script
 ├── docker-compose.yml     # Multi-container setup
+├── turbo.json            # Turborepo configuration
 ├── package.json          # Root workspace configuration
 └── README.md
 ```
@@ -485,93 +485,131 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 *Transform your teaching with AI-powered poll generation. Make learning interactive, engaging, and fun!* 🎓✨
-│   ├── frontend/         # Vite React TypeScript frontend
-│   └── backend/          # Express/Vite backend
-├── services/
-│   ├── whisper/          # Python service for audio transcription (Whisper)
-│   └── pollgen-llm/      # Poll generation logic using API/Local LLMs
-├── shared/
-│   ├── types/            # Shared TypeScript types
-│   └── utils/            # Shared utility functions
-├── .github/
-│   └── workflows/        # CI/CD pipelines
-├── package.json          # Root config with workspaces
-├── turbo.json            # Turborepo pipeline config
-├── .gitignore
-└── README.md
 
-```
 
 ---
 
 ## 🚀 Getting Started
 
-### Global Prerequisites
+### 🔧 Python Environment Setup (Whisper Service)
 
-Install `pnpm` and `turbo` globally (once):
+1. Navigate to the Whisper service folder:
+\`\`\`bash
+cd services/whisper
+\`\`\`
 
+2. Create and activate a Python virtual environment:
+\`\`\`bash
+# Windows
+python -m venv whisper-env
+whisper-env\\Scripts\\activate
 
-```
-npm install -g pnpm
-pnpm add -g turbo
-```
-Check versions:
+# macOS/Linux
+python3 -m venv whisper-env
+source whisper-env/bin/activate
+\`\`\`
 
+3.1 Install CPU-only dependencies:
+\`\`\`bash
+pip install --upgrade pip
+pip install -r requirements.txt
+\`\`\`
 
-```
-pnpm -v
-turbo --version
-```
-
-### 1. Install Dependencies
-
-
-
-```
-pnpm install
-```
-
-### 2. Run All Dev Servers (Frontend + Backend)
-
-
-pnpm dev
-```
-
-*(Make sure each app has its own `dev` script defined in its `package.json`)*
+3.2 For GPU support (CUDA 12.1):
+\`\`\`bash
+pip install -r requirements.gpu.txt --extra-index-url https://download.pytorch.org/whl/cu121
+\`\`\`
 
 ---
 
-## 📦 Using Turborepo
+## 🔧 .env Configuration
 
-* `pnpm build` → Build all apps/services
-* `pnpm lint` → Lint all projects
-* `pnpm test` → Run tests
-* `turbo run <task>` → Run any task across monorepo
+### apps/backend/.env
+\`\`\`
+PORT=3000
+WHISPER_WS_URL=ws://localhost:8000
+\`\`\`
+
+### apps/frontend/.env
+\`\`\`
+VITE_BACKEND_WS_URL=ws://localhost:3000
+\`\`\`
+
+---
+
+## 📦 Global Prerequisites
+
+\`\`\`bash
+npm install -g pnpm
+pnpm add -g turbo
+\`\`\`
+
+---
+
+## 📥 Install All Dependencies
+
+\`\`\`bash
+pnpm install
+\`\`\`
+
+---
+
+## 🧪 Run All Dev Servers
+
+\`\`\`bash
+pnpm dev
+\`\`\`
+
+Starts:
+- ✅ Frontend → http://localhost:5173  
+- ✅ Backend (WebSocket) → ws://localhost:3000  
+- ✅ Whisper Service (Python) → ws://localhost:8000  
+
+---
+
+## 🔁 Transcript Cron Job (pollgen-llm)
+
+📄 Location: \`services/pollgen-llm/src/cron/fetchTranscript.ts\`
+
+This cron job simulates fetching transcripts every 2 minutes using \`node-cron\`.
+
+### Features:
+- Logs mock transcript to console
+- Uses \`chalk\` for colored terminal output
+
+### Run it with:
+\`\`\`bash
+pnpm dev -F pollgen-llm
+\`\`\`
+
+Make sure \`src/index.ts\` includes:
+\`\`\`ts
+import "./cron/fetchTranscript";
+\`\`\`
+
+---
+
+## 🗣 Phase 1 – Transcription Pipeline
+
+1. Frontend sends audio via WebSocket  
+2. Backend receives and forwards to Whisper  
+3. Whisper transcribes and sends back JSON  
+4. LLM (next phase) turns transcripts into polls
+
+📅 Future Phases:
+- Poll Generation
+- Real-time Poll Launch & Analytics
 
 ---
 
 ## 📌 Notes
 
-* Powered by `pnpm` workspaces + `Turborepo`
-* Modular folder structure for scalable dev
-* Each service/app can run independently or be combined via CI/CD
----
-###
-```
-## 🧠 `services/whisper/` – Faster Whisper Setup (Audio Transcription)
+- Monorepo powered by `pnpm` + `turborepo`
+- Modular architecture for scalable development
+- Each service/app can run independently or be combined via CI/CD
+- CI/CD-ready with GitHub Actions
 
-This guide helps you set up Whisper or Faster-Whisper in a Python environment on Windows, allowing you to transcribe audio files using the model locally.
-
-📦 1. Requirements
-Python 3.8 or higher
-
-Git (if using OpenAI Whisper)
-
-FFmpeg (for audio decoding)
-
-Recommended: Virtual environment
-
----
+## 🧠 Whisper Service Setup (Audio Transcription)
 
 This Python service uses [Faster-Whisper](https://github.com/guillaumekln/faster-whisper) for real-time transcription of meeting audio using Whisper models optimized via CTranslate2.
 
@@ -627,7 +665,7 @@ python test_whisper.py
 
 The first time you run, the model (e.g., `"base"`) will download from HuggingFace. You can also download manually or cache using:
 
-```bash
+```python
 from faster_whisper import WhisperModel
 model = WhisperModel("base", download_root="./models")
 ```
@@ -636,10 +674,7 @@ model = WhisperModel("base", download_root="./models")
 
 To leverage GPU and faster inference:
 
-```bash
+```python
 # Float16 for GPU (if supported)
 model = WhisperModel("base", compute_type="float16")
 ```
-
----
->>>>>>> origin/development
