@@ -7,11 +7,16 @@ dist/
 
 # Turborepo cache
 turbo/
+.turbo/
+
+# Package manager lockfiles
+pnpm-lock.yaml
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # OS files
 .DS_Store
@@ -31,9 +36,21 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Coverage / test reports
+# Test coverage / test reports
 coverage/
 *.lcov
+.vitest/
+jest-cache/
+jest-*
 
 # GitHub workflows artifacts (optional)
 .github/workflows/*.log
+
+# Build output (if applicable)
+build/
+
+# Misc (MacOS / others)
+.DS_Store
+
+# Faster Whisper environment
+services/whisper/whisper-env/

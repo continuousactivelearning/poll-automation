@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "../../",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@poll-automation/types": ["../../shared/types/src/index"],
+      "@poll-automation/types/*": ["../../shared/types/src/*"]
+    }
+  },
+  "include": ["src/**/*", "../../shared/types/src/**/*"],
+  "exclude": ["node_modules"]
+}
