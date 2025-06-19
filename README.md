@@ -7,7 +7,6 @@ Poll Automation App is a standalone, open-source web application designed to int
 ## 📁 Monorepo Folder Structure (Turborepo)
 
 <pre lang="md">
-```
 poll-automation/
 ├── apps/
 │   ├── frontend/         # Vite React TypeScript frontend
@@ -26,9 +25,8 @@ poll-automation/
 ├── turbo.json
 ├── .gitignore
 └── README.md
-```
 </pre>
-.md
+
 \`\`\`
 
 ---
