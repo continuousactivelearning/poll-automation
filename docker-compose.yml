@@ -34,7 +34,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: packages/server/Dockerfile
+      dockerfile: apps/backend/Dockerfile
     container_name: pollgen-server
     restart: unless-stopped
     environment:
@@ -42,7 +42,7 @@ services:
       PORT: 5000
       MONGO_URI: mongodb://admin:password123@mongodb:27017/pollgen_ai?authSource=admin
       REDIS_URL: redis://redis:6379
-      CLIENT_URL: http://localhost:3000
+      CLIENT_URL: http://localhost:5173
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
     ports:
@@ -51,7 +51,7 @@ services:
       - mongodb
       - redis
     volumes:
-      - ./packages/server/uploads:/app/uploads
+      - ./apps/backend/uploads:/app/uploads
     networks:
       - pollgen-network
 
@@ -59,14 +59,13 @@ services:
   client:
     build:
       context: .
-      dockerfile: packages/client/Dockerfile
+      dockerfile: apps/frontend/Dockerfile
     container_name: pollgen-client
     restart: unless-stopped
     environment:
-      REACT_APP_API_URL: http://localhost:5000
-      REACT_APP_SOCKET_URL: ws://localhost:5000
+      VITE_BACKEND_URL: http://localhost:3000
     ports:
-      - "3000:3000"
+      - "5173:5173"
     depends_on:
       - server
     networks:

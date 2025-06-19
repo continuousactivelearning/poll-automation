@@ -44,36 +44,36 @@ const SideNavigation: React.FC<SideNavigationProps> = ({ isOpen, items, userRole
         
         {/* Header */}
         <div className={`p-6 bg-gradient-to-r ${config.gradient} text-white`}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold font-heading">{config.title}</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold font-heading">{config.title}</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors duration-200"
+              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors duration-200"
             >
-              <span className="text-xl">✕</span>
+              <span className="text-lg">✕</span>
             </button>
           </div>
-          <p className="text-sm opacity-90">{config.subtitle}</p>
+          <p className="text-sm opacity-90 leading-relaxed">{config.subtitle}</p>
         </div>
 
         {/* Navigation Items */}
-        <div className="p-4 space-y-2">
+        <div className="p-6 space-y-3">
           {items.map((item, index) => (
             <div
               key={item.id}
-              className={`group relative overflow-hidden rounded-xl transition-all duration-300 cursor-pointer stagger-${index + 1} fade-in-up ${
-                item.isActive 
-                  ? `bg-gradient-to-r ${config.bgGradient} border-2 border-blue-200 shadow-lg` 
-                  : 'hover:bg-gray-50 border-2 border-transparent'
+              className={`group relative overflow-hidden rounded-2xl transition-all duration-300 cursor-pointer stagger-${index + 1} fade-in-up ${
+                item.isActive
+                  ? `bg-gradient-to-r ${config.bgGradient} border border-blue-200/50 shadow-lg`
+                  : 'hover:bg-gray-50/80 border border-transparent hover:border-gray-200/30'
               }`}
               onClick={item.onClick}
             >
               <div className="p-4 flex items-center space-x-4">
                 {/* Icon */}
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all duration-300 ${
-                  item.isActive 
-                    ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg` 
-                    : 'bg-gray-100 group-hover:bg-gray-200'
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg transition-all duration-300 flex-shrink-0 ${
+                  item.isActive
+                    ? `bg-gradient-to-r ${config.gradient} text-white shadow-md`
+                    : 'bg-gray-100/80 group-hover:bg-gray-200/80 text-gray-600'
                 }`}>
                   {item.icon}
                 </div>
@@ -81,27 +81,27 @@ const SideNavigation: React.FC<SideNavigationProps> = ({ isOpen, items, userRole
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <h3 className={`font-semibold text-base truncate ${
+                    <h3 className={`font-semibold text-sm leading-tight ${
                       item.isActive ? 'text-gray-900' : 'text-gray-700 group-hover:text-gray-900'
                     }`}>
                       {item.label}
                     </h3>
                     {item.badge && (
-                      <span className="ml-2 px-2 py-1 bg-red-500 text-white text-xs font-medium rounded-full">
+                      <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-medium rounded-full min-w-[20px] text-center">
                         {item.badge}
                       </span>
                     )}
                   </div>
                   {item.description && (
-                    <p className="text-sm text-gray-500 mt-1 truncate">
+                    <p className="text-xs text-gray-500 mt-1 leading-tight">
                       {item.description}
                     </p>
                   )}
                 </div>
 
-                {/* Arrow */}
-                <div className={`transition-transform duration-300 ${
-                  item.isActive ? 'transform rotate-90' : 'group-hover:translate-x-1'
+                {/* Arrow - Only show on hover or active */}
+                <div className={`transition-all duration-300 flex-shrink-0 ${
+                  item.isActive ? 'opacity-100 transform rotate-90' : 'opacity-0 group-hover:opacity-100 group-hover:translate-x-1'
                 }`}>
                   <span className="text-gray-400 text-sm">→</span>
                 </div>
@@ -109,11 +109,11 @@ const SideNavigation: React.FC<SideNavigationProps> = ({ isOpen, items, userRole
 
               {/* Active Indicator */}
               {item.isActive && (
-                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${config.gradient}`}></div>
+                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${config.gradient} rounded-r-full`}></div>
               )}
 
-              {/* Hover Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              {/* Subtle Hover Effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/3 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
             </div>
           ))}
         </div>

@@ -117,87 +117,88 @@ const ParticipantInterface: React.FC = () => {
         onClose={() => setIsSideNavOpen(false)}
       />
 
-      {/* Student Performance Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6 hover-lift fade-in-up">
+      {/* Main Container with Fixed Layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Line 1: Student Performance Header */}
+        <div className="mb-6 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-4 hover-lift fade-in-up">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                <span className="text-white text-2xl">🎓</span>
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <span className="text-white text-lg">🎓</span>
               </div>
               <div>
-                <h2 className="text-title font-heading gradient-text-green">Student Performance</h2>
-                <p className="text-gray-600 mt-1">Track your learning progress and achievements</p>
+                <h2 className="text-lg font-heading gradient-text-green">Student Performance</h2>
+                <p className="text-gray-600 text-sm">Track your learning progress and achievements</p>
               </div>
             </div>
 
             {/* Quick Stats Row */}
-            <div className="hidden md:flex items-center space-x-6">
+            <div className="hidden md:flex items-center space-x-4">
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <span className="text-2xl mr-2">🎯</span>
+                  <span className="text-lg mr-1">🎯</span>
                 </div>
-                <p className="text-sm text-gray-500">Accuracy</p>
-                <p className="text-xl font-bold gradient-text-green">{studentStats.accuracy}%</p>
+                <p className="text-xs text-gray-500">Accuracy</p>
+                <p className="text-lg font-bold gradient-text-green">{studentStats.accuracy}%</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <span className="text-2xl mr-2">🔥</span>
+                  <span className="text-lg mr-1">🔥</span>
                 </div>
-                <p className="text-sm text-gray-500">Streak</p>
-                <p className="text-xl font-bold gradient-text-purple">{studentStats.currentStreak}</p>
+                <p className="text-xs text-gray-500">Streak</p>
+                <p className="text-lg font-bold gradient-text-purple">{studentStats.currentStreak}</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <span className="text-2xl mr-2">⭐</span>
+                  <span className="text-lg mr-1">⭐</span>
                 </div>
-                <p className="text-sm text-gray-500">Points</p>
-                <p className="text-xl font-bold gradient-text-blue">{studentStats.totalPoints}</p>
+                <p className="text-xs text-gray-500">Points</p>
+                <p className="text-lg font-bold gradient-text-blue">{studentStats.totalPoints}</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <span className="text-2xl mr-2">🏆</span>
+                  <span className="text-lg mr-1">🏆</span>
                 </div>
-                <p className="text-sm text-gray-500">Rank</p>
-                <p className="text-xl font-bold gradient-text-purple">#{studentStats.rank}</p>
+                <p className="text-xs text-gray-500">Rank</p>
+                <p className="text-lg font-bold gradient-text-purple">#{studentStats.rank}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Enhanced Tab Navigation */}
-            <nav className="mb-6">
-              <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-2 shadow-lg border border-white/20">
-                <ul className="flex space-x-1 overflow-x-auto">
-                  {navigationItems.map((item, index) => (
-                    <li key={item.id} className={`fade-in-up stagger-${index + 1}`}>
-                      <Link
-                        to={item.id === 'active-poll' ? '/participant' : `/participant/${item.id.replace('-', '')}`}
-                        className={`flex items-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 hover-scale ${
-                          item.isActive
-                            ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg'
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                        }`}
-                      >
-                        <span className="text-lg">{item.icon}</span>
-                        <span>{item.label}</span>
-                        {item.badge && (
-                          <span className="ml-1 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </nav>
+        {/* Line 2: Navigation Tabs */}
+        <div className="mb-6">
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-2 shadow-lg border border-white/20">
+            <ul className="flex space-x-1 overflow-x-auto">
+              {navigationItems.map((item, index) => (
+                <li key={item.id} className={`fade-in-up stagger-${index + 1}`}>
+                  <Link
+                    to={item.id === 'active-poll' ? '/participant' : `/participant/${item.id.replace('-', '')}`}
+                    className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 hover-scale ${
+                      item.isActive
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    <span>{item.label}</span>
+                    {item.badge && (
+                      <span className="ml-1 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
-            {/* Content Area with Animation */}
+        {/* Line 3: Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Main Content Area */}
+          <div className="lg:col-span-3">
             <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6 page-transition">
               <Routes>
                 <Route path="/" element={<ActivePoll />} />
@@ -210,122 +211,122 @@ const ParticipantInterface: React.FC = () => {
             </div>
           </div>
 
-          {/* Enhanced Sidebar */}
-          <div className="space-y-6 slide-in-right">
+          {/* Compact Sidebar */}
+          <div className="space-y-4 slide-in-right">
             {/* Quick Stats */}
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6 hover-lift fade-in-up stagger-1">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-lg">📊</span>
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-4 hover-lift fade-in-up stagger-1">
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm">📊</span>
                 </div>
-                <h3 className="text-title font-heading gradient-text-blue">Quick Stats</h3>
+                <h3 className="text-sm font-heading gradient-text-blue">Quick Stats</h3>
               </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                  <span className="text-gray-700 font-medium">Rank</span>
-                  <span className="text-xl font-bold gradient-text-blue">#{studentStats.rank}</span>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                  <span className="text-gray-700 text-sm font-medium">Rank</span>
+                  <span className="text-lg font-bold gradient-text-blue">#{studentStats.rank}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-                  <span className="text-gray-700 font-medium">Level</span>
-                  <span className="text-xl font-bold gradient-text-purple">{studentStats.level}</span>
+                <div className="flex justify-between items-center p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+                  <span className="text-gray-700 text-sm font-medium">Level</span>
+                  <span className="text-lg font-bold gradient-text-purple">{studentStats.level}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
-                  <span className="text-gray-700 font-medium">Total Polls</span>
-                  <span className="text-xl font-bold text-gray-900">{studentStats.totalPolls}</span>
+                <div className="flex justify-between items-center p-2 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg">
+                  <span className="text-gray-700 text-sm font-medium">Total Polls</span>
+                  <span className="text-lg font-bold text-gray-900">{studentStats.totalPolls}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                  <span className="text-gray-700 font-medium">Correct</span>
-                  <span className="text-xl font-bold gradient-text-green">{studentStats.correctAnswers}</span>
+                <div className="flex justify-between items-center p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                  <span className="text-gray-700 text-sm font-medium">Correct</span>
+                  <span className="text-lg font-bold gradient-text-green">{studentStats.correctAnswers}</span>
                 </div>
               </div>
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6 hover-lift fade-in-up stagger-2">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-lg">🔔</span>
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-4 hover-lift fade-in-up stagger-2">
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm">🔔</span>
                 </div>
-                <h3 className="text-title font-heading gradient-text-green">Recent Activity</h3>
+                <h3 className="text-sm font-heading gradient-text-green">Recent Activity</h3>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl hover-scale">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-white text-sm">✅</span>
+              <div className="space-y-2">
+                <div className="flex items-center p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg hover-scale">
+                  <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-md flex items-center justify-center mr-2">
+                    <span className="text-white text-xs">✅</span>
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-900">Answered poll correctly</span>
+                    <span className="text-xs font-medium text-gray-900">Answered correctly</span>
                   </div>
-                  <span className="text-xs text-gray-500 font-medium">2m ago</span>
+                  <span className="text-xs text-gray-500">2m</span>
                 </div>
-                <div className="flex items-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl hover-scale">
-                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-white text-sm">🏆</span>
+                <div className="flex items-center p-2 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg hover-scale">
+                  <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-md flex items-center justify-center mr-2">
+                    <span className="text-white text-xs">🏆</span>
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-900">Earned Speed Demon badge</span>
+                    <span className="text-xs font-medium text-gray-900">Earned badge</span>
                   </div>
-                  <span className="text-xs text-gray-500 font-medium">5m ago</span>
+                  <span className="text-xs text-gray-500">5m</span>
                 </div>
-                <div className="flex items-center p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl hover-scale">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-white text-sm">📊</span>
+                <div className="flex items-center p-2 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg hover-scale">
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-md flex items-center justify-center mr-2">
+                    <span className="text-white text-xs">📊</span>
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-900">Joined new poll session</span>
+                    <span className="text-xs font-medium text-gray-900">Joined session</span>
                   </div>
-                  <span className="text-xs text-gray-500 font-medium">10m ago</span>
+                  <span className="text-xs text-gray-500">10m</span>
                 </div>
               </div>
             </div>
 
-            {/* Enhanced Study Streak */}
-            <div className="bg-gradient-to-br from-orange-400 via-red-500 to-pink-500 rounded-2xl shadow-xl p-6 text-white hover-lift fade-in-up stagger-3">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">🔥</span>
+            {/* Study Streak */}
+            <div className="bg-gradient-to-br from-orange-400 via-red-500 to-pink-500 rounded-2xl shadow-xl p-4 text-white hover-lift fade-in-up stagger-3">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🔥</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">Study Streak</h3>
-                    <p className="text-sm opacity-90">Keep the momentum going!</p>
+                    <h3 className="text-sm font-bold">Study Streak</h3>
+                    <p className="text-xs opacity-90">Keep going!</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold">{studentStats.currentStreak}</p>
-                  <p className="text-sm opacity-90">days</p>
+                  <p className="text-2xl font-bold">{studentStats.currentStreak}</p>
+                  <p className="text-xs opacity-90">days</p>
                 </div>
               </div>
-              <div className="bg-white/20 rounded-xl p-3">
-                <p className="text-sm font-medium">🎯 Goal: Reach 10 days!</p>
-                <div className="mt-2 bg-white/20 rounded-full h-2">
+              <div className="bg-white/20 rounded-lg p-2">
+                <p className="text-xs font-medium">🎯 Goal: Reach 10 days!</p>
+                <div className="mt-1 bg-white/20 rounded-full h-1.5">
                   <div
-                    className="bg-white rounded-full h-2 transition-all duration-500"
+                    className="bg-white rounded-full h-1.5 transition-all duration-500"
                     style={{ width: `${(studentStats.currentStreak / 10) * 100}%` }}
                   ></div>
                 </div>
               </div>
             </div>
 
-            {/* Badges Showcase */}
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6 hover-lift fade-in-up stagger-4">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-lg">🏅</span>
+            {/* Badges */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-4 hover-lift fade-in-up stagger-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm">🏅</span>
                 </div>
-                <h3 className="text-title font-heading gradient-text-purple">My Badges</h3>
+                <h3 className="text-sm font-heading gradient-text-purple">My Badges</h3>
               </div>
-              <div className="flex justify-center space-x-3">
+              <div className="flex justify-center space-x-2">
                 {studentStats.badges.map((badge, index) => (
                   <div
                     key={index}
-                    className={`w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg hover-scale stagger-${index + 1} fade-in-up`}
+                    className={`w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-lg shadow-lg hover-scale stagger-${index + 1} fade-in-up`}
                   >
                     {badge}
                   </div>
                 ))}
               </div>
-              <p className="text-center text-sm text-gray-600 mt-4 font-medium">
+              <p className="text-center text-xs text-gray-600 mt-3 font-medium">
                 {studentStats.badges.length} badges earned
               </p>
             </div>

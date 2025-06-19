@@ -1,9 +1,9 @@
 {
-  "name": "@pollgen-ai/client",
+  "name": "@poll-automation/frontend",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@pollgen-ai/shared": "file:../shared",
+    "@poll-automation/shared": "file:../../shared/types",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -25,14 +25,13 @@
     "recharts": "^2.8.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "dev": "react-scripts start",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "clean": "rimraf build"
+    "type-check": "tsc --noEmit",
+    "clean": "rimraf dist"
   },
   "eslintConfig": {
     "extends": [
@@ -53,9 +52,14 @@
     ]
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.3",
+    "vite": "^4.4.5",
     "tailwindcss": "^3.2.4",
     "@tailwindcss/forms": "^0.5.6",
     "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.31"
+    "postcss": "^8.4.31",
+    "eslint": "^8.45.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
   }
 }

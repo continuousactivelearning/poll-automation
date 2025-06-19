@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const LandingPage: React.FC = () => {
@@ -13,24 +13,57 @@ const LandingPage: React.FC = () => {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
+  const testConnection = async () => {
+    try {
+      console.log('Testing connection to backend...');
+      const response = await fetch('http://localhost:3000/api/auth/test');
+      const data = await response.json();
+      console.log('Connection test result:', data);
+      alert('Connection successful! Check console for details.');
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      alert('Connection failed! Check console for details.');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
+
     try {
       if (isLogin) {
         await signIn(email, password);
-        navigate(role === 'host' ? '/host' : '/participant');
+        // Small delay to ensure user state is set
+        setTimeout(() => {
+          const storedUser = localStorage.getItem('currentUser');
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            console.log('Navigating to dashboard for role:', user.role);
+            navigate(user.role === 'host' ? '/host' : '/participant');
+          } else {
+            console.log('No stored user found, using form role:', role);
+            navigate(role === 'host' ? '/host' : '/participant');
+          }
+        }, 100);
       } else {
         await signUp(email, password, role);
-        navigate(role === 'host' ? '/host' : '/participant');
+        setTimeout(() => {
+          console.log('Navigating after signup for role:', role);
+          navigate(role === 'host' ? '/host' : '/participant');
+        }, 100);
       }
-    } catch (err) {
-      setError('Failed to sign in. Please check your credentials.');
-      console.error(err);
+    } catch (err: any) {
+      console.error('Authentication error:', err);
+
+      // Show specific error message from backend or a generic one
+      if (err.message) {
+        setError(err.message);
+      } else {
+        setError(isLogin ? 'Failed to sign in. Please check your credentials.' : 'Failed to create account. Please try again.');
+      }
     }
-    
+
     setLoading(false);
   };
 
@@ -226,6 +259,27 @@ const LandingPage: React.FC = () => {
               className="text-blue-600 hover:text-purple-600 font-medium transition-colors duration-200"
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+            </button>
+          </div>
+
+          {isLogin && (
+            <div className="mt-4 text-center fade-in-up stagger-6">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+          )}
+
+          {/* Debug Connection Test Button */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={testConnection}
+              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
+            >
+              🔧 Test Backend Connection
             </button>
           </div>
 

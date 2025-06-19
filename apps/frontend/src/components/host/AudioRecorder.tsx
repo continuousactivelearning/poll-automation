@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSocket } from '../../contexts/SocketContext';
 
 interface AudioRecorderProps {
   meetingId: string;
@@ -11,25 +12,37 @@ interface RecordingState {
   isPaused: boolean;
   duration: number;
   isProcessing: boolean;
+  isStreaming: boolean;
+  chunksProcessed: number;
 }
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerated }) => {
   const { currentUser } = useAuth();
+  const { socket } = useSocket();
   const [recordingState, setRecordingState] = useState<RecordingState>({
     isRecording: false,
     isPaused: false,
     duration: 0,
-    isProcessing: false
+    isProcessing: false,
+    isStreaming: false,
+    chunksProcessed: 0
   });
   
   const [transcript, setTranscript] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [audioQuality, setAudioQuality] = useState<string>('Good');
+  const [realtimeTranscript, setRealtimeTranscript] = useState<string>('');
+  const [realtimePolls, setRealtimePolls] = useState<any[]>([]);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   // Clean up on unmount
   useEffect(() => {
@@ -40,6 +53,41 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
       }
     };
   }, []);
+
+  // Real-time AI WebSocket listeners
+  useEffect(() => {
+    if (socket) {
+      // Listen for real-time transcript updates
+      socket.on('realtime-transcript-update', (data: any) => {
+        const { chunkIndex, partialTranscript, timestamp, isPartial } = data;
+        console.log(`🎤 Real-time transcript chunk ${chunkIndex}:`, partialTranscript);
+
+        setRealtimeTranscript(prev => {
+          if (isPartial) {
+            return prev + ' ' + partialTranscript;
+          }
+          return partialTranscript;
+        });
+      });
+
+      // Listen for real-time poll generation
+      socket.on('realtime-poll-generated', (data: any) => {
+        const { poll, chunkIndex, timestamp } = data;
+        console.log(`🚀 Real-time poll generated at chunk ${chunkIndex}:`, poll);
+
+        setRealtimePolls(prev => [...prev, { ...poll, chunkIndex, timestamp }]);
+
+        // Notify user of new real-time poll
+        setSuccess(`🚀 Real-time poll generated! "${poll.question}"`);
+        setTimeout(() => setSuccess(''), 3000);
+      });
+
+      return () => {
+        socket.off('realtime-transcript-update');
+        socket.off('realtime-poll-generated');
+      };
+    }
+  }, [socket]);
 
   const startRecording = async () => {
     try {
@@ -58,6 +106,51 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
       streamRef.current = stream;
       audioChunksRef.current = [];
 
+      // Set up Web Audio API for real-time audio analysis
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      sourceRef.current = source;
+
+      // Start real-time audio level monitoring
+      const monitorAudioLevel = () => {
+        if (analyserRef.current) {
+          const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+          analyserRef.current.getByteFrequencyData(dataArray);
+
+          // Calculate average audio level
+          const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+          const normalizedLevel = Math.round((average / 255) * 100);
+
+          setAudioLevel(normalizedLevel);
+
+          // Determine audio quality based on level
+          if (normalizedLevel < 10) {
+            setAudioQuality('Too Quiet');
+          } else if (normalizedLevel > 80) {
+            setAudioQuality('Too Loud');
+          } else if (normalizedLevel > 30) {
+            setAudioQuality('Excellent');
+          } else {
+            setAudioQuality('Good');
+          }
+        }
+
+        if (recordingState.isRecording) {
+          requestAnimationFrame(monitorAudioLevel);
+        }
+      };
+
+      // Start monitoring
+      monitorAudioLevel();
+
       // Create MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
@@ -65,10 +158,32 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
       
       mediaRecorderRef.current = mediaRecorder;
 
-      // Handle data available
+      // Handle data available - Real-time streaming
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+
+          // Stream audio chunk in real-time via WebSocket
+          if (socket && recordingState.isStreaming) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const arrayBuffer = reader.result as ArrayBuffer;
+              const chunkIndex = audioChunksRef.current.length - 1;
+
+              socket.emit('audio-chunk', {
+                meetingId,
+                audioChunk: Array.from(new Uint8Array(arrayBuffer)),
+                chunkIndex,
+                timestamp: new Date().toISOString()
+              });
+
+              setRecordingState(prev => ({
+                ...prev,
+                chunksProcessed: prev.chunksProcessed + 1
+              }));
+            };
+            reader.readAsArrayBuffer(event.data);
+          }
         }
       };
 
@@ -77,10 +192,24 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
         await processRecording();
       };
 
-      // Start recording
-      mediaRecorder.start(1000); // Collect data every second
-      
-      setRecordingState(prev => ({ ...prev, isRecording: true, duration: 0 }));
+      // Start recording with real-time chunking
+      mediaRecorder.start(1000); // Collect data every second for real-time streaming
+
+      setRecordingState(prev => ({
+        ...prev,
+        isRecording: true,
+        duration: 0,
+        isStreaming: true,
+        chunksProcessed: 0
+      }));
+
+      // Start WebSocket audio stream
+      if (socket) {
+        socket.emit('start-audio-stream', {
+          meetingId,
+          hostId: currentUser?.email || 'anonymous'
+        });
+      }
       
       // Start duration timer
       intervalRef.current = setInterval(() => {
@@ -103,6 +232,14 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+
+      // Clean up Web Audio API
+      if (sourceRef.current) {
+        sourceRef.current.disconnect();
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
       
       // Clear timer
       if (intervalRef.current) {
@@ -110,12 +247,21 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
         intervalRef.current = null;
       }
       
-      setRecordingState(prev => ({ 
-        ...prev, 
-        isRecording: false, 
+      setRecordingState(prev => ({
+        ...prev,
+        isRecording: false,
         isPaused: false,
-        isProcessing: true 
+        isProcessing: true,
+        isStreaming: false
       }));
+
+      // Stop WebSocket audio stream
+      if (socket) {
+        socket.emit('stop-audio-stream', {
+          meetingId,
+          hostId: currentUser?.email || 'anonymous'
+        });
+      }
     }
   };
 
@@ -147,7 +293,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
       formData.append('hostId', currentUser?.email || 'anonymous');
 
       // Upload to backend
-      const response = await fetch('http://localhost:5000/api/audio/upload', {
+      const response = await fetch('http://localhost:5003/api/audio/upload', {
         method: 'POST',
         body: formData
       });
@@ -186,6 +332,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
   const getRecordingStatus = (): string => {
     if (recordingState.isProcessing) return 'Processing audio...';
     if (recordingState.isRecording && recordingState.isPaused) return 'Recording paused';
+    if (recordingState.isRecording && recordingState.isStreaming) return 'Live streaming & recording...';
     if (recordingState.isRecording) return 'Recording in progress...';
     return 'Ready to record';
   };
@@ -214,9 +361,36 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
               {getRecordingStatus()}
             </p>
             {recordingState.isRecording && (
-              <p className="text-sm text-gray-500 mt-1">
-                Duration: {formatDuration(recordingState.duration)}
-              </p>
+              <div className="text-sm text-gray-500 mt-1 space-y-1">
+                <p>Duration: {formatDuration(recordingState.duration)}</p>
+                {recordingState.isStreaming && (
+                  <div className="space-y-1">
+                    <p className="text-blue-600">
+                      📡 Streaming live • {recordingState.chunksProcessed} chunks sent
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs">Audio Level:</span>
+                      <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-100 ${
+                            audioLevel > 80 ? 'bg-red-500' :
+                            audioLevel > 30 ? 'bg-green-500' :
+                            audioLevel > 10 ? 'bg-yellow-500' : 'bg-gray-400'
+                          }`}
+                          style={{ width: `${audioLevel}%` }}
+                        />
+                      </div>
+                      <span className={`text-xs font-medium ${
+                        audioQuality === 'Excellent' ? 'text-green-600' :
+                        audioQuality === 'Good' ? 'text-blue-600' :
+                        audioQuality === 'Too Quiet' ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {audioQuality}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           {recordingState.isRecording && (
@@ -272,10 +446,53 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
         </div>
       )}
 
-      {/* Transcript Display */}
+      {/* Real-time Transcript Display */}
+      {realtimeTranscript && (
+        <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <h4 className="font-medium text-purple-900 mb-2">🎤 Real-time Transcript:</h4>
+          <p className="text-sm text-purple-800 italic">"{realtimeTranscript}"</p>
+          <div className="mt-2 flex items-center text-xs text-purple-600">
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse mr-2"></div>
+            Live transcription in progress...
+          </div>
+        </div>
+      )}
+
+      {/* Real-time Polls Display */}
+      {realtimePolls.length > 0 && (
+        <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+          <h4 className="font-medium text-orange-900 mb-3">🚀 Real-time Generated Polls:</h4>
+          <div className="space-y-3">
+            {realtimePolls.map((poll, index) => (
+              <div key={index} className="p-3 bg-white rounded border border-orange-200">
+                <p className="font-medium text-orange-900 mb-2">{poll.question}</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {poll.options.map((option: string, optIndex: number) => (
+                    <div
+                      key={optIndex}
+                      className={`p-2 rounded ${
+                        optIndex === poll.correctAnswer
+                          ? 'bg-green-100 text-green-800 font-medium'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {String.fromCharCode(65 + optIndex)}. {option}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-orange-600">
+                  Generated at chunk {poll.chunkIndex} • {poll.category}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Final Transcript Display */}
       {transcript && (
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">📝 Transcript:</h4>
+          <h4 className="font-medium text-blue-900 mb-2">📝 Final Transcript:</h4>
           <p className="text-sm text-blue-800 italic">"{transcript}"</p>
         </div>
       )}
@@ -287,6 +504,18 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ meetingId, onPollsGenerat
           <p className="text-sm text-green-800">
             Your audio will be processed using OpenAI Whisper for transcription and GPT-3.5-turbo for intelligent poll generation.
           </p>
+        </div>
+
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 className="font-medium text-blue-900 mb-2">🎵 Real-time Audio & AI Processing</h4>
+          <div className="space-y-2 text-sm text-blue-800">
+            <p>• <strong>MediaRecorder API:</strong> 1-second audio chunking</p>
+            <p>• <strong>Web Audio API:</strong> Real-time level monitoring</p>
+            <p>• <strong>WebSocket Streaming:</strong> Live chunk transmission</p>
+            <p>• <strong>Real-time AI:</strong> Live transcription during recording</p>
+            <p>• <strong>Live Poll Generation:</strong> Questions generated every 5 seconds</p>
+            <p>• <strong>Audio Quality:</strong> Automatic noise suppression & echo cancellation</p>
+          </div>
         </div>
 
         <div className="p-4 bg-yellow-50 rounded-lg">

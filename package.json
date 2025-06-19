@@ -7,17 +7,20 @@
   "workspaces": [
     "apps/*",
     "services/*",
-    "shared/*",
-    "packages/*"
+    "shared/*"
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "dev:legacy": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:client": "npm run start --workspace=packages/client",
-    "dev:server": "npm run dev --workspace=packages/server",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:whisper": "npm run start --workspace=services/whisper",
     "build": "turbo run build",
+    "build:frontend": "npm run build --workspace=apps/frontend",
+    "build:backend": "npm run build --workspace=apps/backend",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "type-check": "turbo run type-check"
   },
   "keywords": [
     "ai",
@@ -34,9 +37,9 @@
   "license": "MIT",
   "packageManager": "pnpm@10.12.1",
   "devDependencies": {
-    "turbo": "^2.5.4",
-    "concurrently": "^8.2.2",
     "@types/node": "^20.8.9",
+    "concurrently": "^8.2.2",
+    "turbo": "^2.5.4",
     "typescript": "^5.2.2"
   },
   "engines": {
@@ -50,5 +53,9 @@
   "bugs": {
     "url": "https://github.com/gayathri-1911/poll-automation/issues"
   },
-  "homepage": "https://github.com/gayathri-1911/poll-automation#readme"
+  "homepage": "https://github.com/gayathri-1911/poll-automation#readme",
+  "dependencies": {
+    "@types/nodemailer": "^6.4.17",
+    "nodemailer": "^7.0.3"
+  }
 }

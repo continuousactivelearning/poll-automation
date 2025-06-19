@@ -3,30 +3,27 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/"]
-    },
-    "start:whisper": {
-      "cache": false,
-      "dependsOn": ["install"]
-    },
-    "test:whisper": {
-      "cache": false
+      "outputs": ["dist/", "build/", ".next/"]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
-    "dev:transcription": {
+    "start": {
       "cache": false,
-      "dependsOn": ["@poll-automation/types#build"]
+      "persistent": true,
+      "dependsOn": ["build"]
     },
-    "dev:web": {
-      "cache": false
+    "lint": {
+      "outputs": []
     },
-    "lint": {},
-    "format": {},
-    "test": {},
-    "install": {
+    "type-check": {
+      "outputs": []
+    },
+    "test": {
+      "outputs": []
+    },
+    "clean": {
       "cache": false
     }
   }

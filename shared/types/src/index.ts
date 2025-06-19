@@ -1,7 +1,52 @@
-import { Buffer } from "buffer";
+// Main export file for @pollgen-ai/shared package
 
-export type WhisperResult = { text: string; confidence: number };
-export type AudioChunk = { data: Buffer; timestamp: number };
-export type TranscriptionResult = { transcript: string; confidence: number };
-export type SomeType = any; // Replace with your actual type
-export * from './websocket';
+// Export all types
+export * from './types';
+
+// Export all utilities
+export * from './utils';
+
+// Export all constants
+export * from './constants';
+
+// Re-export commonly used items for convenience
+export type {
+  User,
+  Meeting,
+  Poll,
+  Response,
+  Participant,
+  AudioProcessingRequest,
+  AudioProcessingResponse,
+  GeneratedPoll,
+  SocketEvents,
+  ApiResponse,
+  PaginatedResponse,
+  LeaderboardEntry,
+  PollResults,
+} from './types';
+
+export {
+  generateMeetingCode,
+  calculateAccuracy,
+  formatDuration,
+  formatResponseTime,
+  isValidEmail,
+  isValidMeetingCode,
+  generateId,
+  debounce,
+  throttle,
+  sortLeaderboard,
+  calculatePollStats,
+} from './utils';
+
+export {
+  APP_CONFIG,
+  SOCKET_EVENTS,
+  API_ENDPOINTS,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  USER_ROLES,
+  POLL_TYPES,
+  POLL_DIFFICULTIES,
+} from './constants';
