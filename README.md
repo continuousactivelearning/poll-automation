@@ -2,9 +2,11 @@
 
 Poll Automation App is a standalone, open-source web application designed to intelligently generate and manage live polls in real-time during lectures, webinars, or meetings — without being tied to any specific video conferencing platform.
 
+---
+
 ## 📁 Monorepo Folder Structure (Turborepo)
 
-```
+<pre lang="md">
 poll-automation/
 ├── apps/
 │   ├── frontend/         # Vite React TypeScript frontend
@@ -12,126 +14,137 @@ poll-automation/
 ├── services/
 │   ├── whisper/          # Python service for audio transcription (Whisper)
 │   └── pollgen-llm/      # Poll generation logic using API/Local LLMs
+│       └── src/
+│           └── cron/     # ⏰ Cron job for transcript polling
 ├── shared/
 │   ├── types/            # Shared TypeScript types
 │   └── utils/            # Shared utility functions
 ├── .github/
 │   └── workflows/        # CI/CD pipelines
-├── package.json          # Root config with workspaces
-├── turbo.json            # Turborepo pipeline config
+├── package.json
+├── turbo.json
 ├── .gitignore
 └── README.md
-```
+</pre>
+
+
+---
 
 ## 🚀 Getting Started
 
-### 🔧 Python Environment Setup
+### 🔧 Python Environment Setup (Whisper Service)
 
-1. **Navigate to the Whisper service folder:**
-
-```bash
+1. Navigate to the Whisper service folder:
+\`\`\`bash
 cd services/whisper
-```
+\`\`\`
 
-2. **Create and activate a Python virtual environment:**
-
-```bash
+2. Create and activate a Python virtual environment:
+\`\`\`bash
 # Windows
 python -m venv whisper-env
-whisper-env\Scripts\activate
+whisper-env\\Scripts\\activate
 
 # macOS/Linux
 python3 -m venv whisper-env
 source whisper-env/bin/activate
-```
+\`\`\`
 
-3.1 **For CPU-only**
-
-```bash
+3.1 Install CPU-only dependencies:
+\`\`\`bash
 pip install --upgrade pip
 pip install -r requirements.txt
-````
+\`\`\`
 
-This installs everything except large GPU-related packages like `torch`.
-Useful for quickly running the backend in **CPU mode** for testing or development.
-
-
-3.2 **⚡ For GPU support (CUDA 12.1)**
-
-If you have a CUDA-enabled GPU and want to use GPU acceleration:
-
-```bash
+3.2 For GPU support (CUDA 12.1):
+\`\`\`bash
 pip install -r requirements.gpu.txt --extra-index-url https://download.pytorch.org/whl/cu121
-```
+\`\`\`
 
-This will install `torch`, `torchaudio`, and `torchvision` with CUDA 12.1 support.
-Make sure your system has the correct CUDA runtime installed.
-
+---
 
 ## 🔧 .env Configuration
 
-### `apps/backend/.env`
-
-```
+### apps/backend/.env
+\`\`\`
 PORT=3000
 WHISPER_WS_URL=ws://localhost:8000
-```
+\`\`\`
 
-### `apps/frontend/.env`
-
-```
+### apps/frontend/.env
+\`\`\`
 VITE_BACKEND_WS_URL=ws://localhost:3000
-```
+\`\`\`
 
-### Global Prerequisites
-**Navigate to the root directory:**
+---
 
-Install `pnpm` and `turbo` globally (once):
+## 📦 Global Prerequisites
 
-```bash
+\`\`\`bash
 npm install -g pnpm
 pnpm add -g turbo
-```
-### 1. Install dependencies
+\`\`\`
 
-```bash
+---
+
+## 📥 Install All Dependencies
+
+\`\`\`bash
 pnpm install
-```
+\`\`\`
 
-### 2. Start all dev servers
+---
 
-```bash
+## 🧪 Run All Dev Servers
+
+\`\`\`bash
 pnpm dev
-```
-This starts:
+\`\`\`
 
-* ✅ *Frontend* → [http://localhost:5173](http://localhost:5173)
-* ✅ *Backend (WebSocket server)* → ws\://localhost:3000
-* ✅ *Whisper Transcription Service* → ws\://localhost:8000 (Python FastAPI)
+Starts:
+- ✅ Frontend → http://localhost:5173  
+- ✅ Backend (WebSocket) → ws://localhost:3000  
+- ✅ Whisper Service (Python) → ws://localhost:8000  
 
-> Make sure the Python environment is set up correctly (faster-whisper, uvicorn, etc.)
+---
 
-## 🛆 Using Turborepo
+## 🔁 Transcript Cron Job (pollgen-llm)
 
-* `pnpm build` → Build all apps/services
-* `pnpm lint` → Lint all projects
-* `pnpm test` → Run tests
-* `turbo run <task>` → Run any task across monorepo
+📄 Location: \`services/pollgen-llm/src/cron/fetchTranscript.ts\`
 
+This cron job simulates fetching transcripts every 2 minutes using \`node-cron\`.
+
+### Features:
+- Logs mock transcript to console
+- Uses \`chalk\` for colored terminal output
+
+### Run it with:
+\`\`\`bash
+pnpm dev -F pollgen-llm
+\`\`\`
+
+Make sure \`src/index.ts\` includes:
+\`\`\`ts
+import "./cron/fetchTranscript";
+\`\`\`
+
+---
 
 ## 🗣 Phase 1 – Transcription Pipeline
 
-> This outlines the current real-time transcription flow:
+1. Frontend sends audio via WebSocket  
+2. Backend receives and forwards to Whisper  
+3. Whisper transcribes and sends back JSON  
+4. LLM (next phase) turns transcripts into polls
 
-1. **Frontend** records or selects a `.wav` file and sends it over WebSocket (binary + metadata).
-2. **Backend** WebSocket server receives and forwards it to the Whisper service.
-3. **Whisper Service** processes audio using Faster-Whisper and returns transcription in JSON.
-4. **Backend** sends transcription JSON back to the frontend or passes it to the LLM service.
+📅 Future Phases:
+- Poll Generation
+- Real-time Poll Launch & Analytics
 
-> Currently, the transcription is **not displayed** to the user – it is **used internally** to generate polls using an LLM.
+---
 
-📅 Upcoming Phases:
+## 📌 Notes
 
-* Phase 2: LLM-based Poll Generation
-* Phase 3: Realtime Poll Launch and Analytics
-
+- Monorepo powered by \`pnpm\` + \`turborepo\`
+- Modular architecture
+- CI/CD-ready with GitHub Actions
