@@ -27,7 +27,8 @@
     "format": {},
     "test": {},
     "install": {
-      "cache": false
+      "cache": false,
+      "persistent": true
     }
   }
 }
