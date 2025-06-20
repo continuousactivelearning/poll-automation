@@ -54,4 +54,14 @@ build/
 
 # Faster Whisper environment
 services/whisper/whisper-env/
+
+#Pollgen environment
 services/pollgen-llm/pollgenenv/
+
+#chroma vector database
+services/pollgen-llm/chroma_langchain_db
+
+#cache files
+services/pollgen-llm/__pycache__
+
+
