@@ -124,7 +124,7 @@ async def process_audio_stream(session_data: Dict[str, Any]):
                         audio_np,
                         beam_size=5,
                         word_timestamps=True, # Useful for more detailed future features
-                        language=None, # Auto-detect language
+                        language="en", # Auto-detect language
                         condition_on_previous_text=False,
                     )
 
