@@ -92,6 +92,8 @@ services/whisper/~
 
 # Pollgen env
 services/pollgen-llm/pollgenenv/
+services/pollgen-llm/__pycache__
+services/pollgen-llm/chroma_langchain_db
 
 # Swap/Temp/Backup files
 *.swp

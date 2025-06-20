@@ -1,23 +1,11 @@
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-import os
-import json
 
-with open("professor_transcript.json", "r", encoding="utf-8") as f:
-    transcript_data = json.load(f)
+import os
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-
-db_location = "./chrome_langchain_db"
-add_documents = not os.path.exists(db_location)
-
-if add_documents:
-    document = Document(
-        page_content=transcript_data["text"],
-        metadata={"language": transcript_data["language"]},
-        id="transcript-001"
-    )
+db_location = "./chroma_langchain_db"
 
 vector_store = Chroma(
     collection_name="instructor_content",
@@ -25,7 +13,15 @@ vector_store = Chroma(
     embedding_function=embeddings
 )
 
-if add_documents:
+def create_vector_index_from_transcript(transcript_text: str):
+    # Always reset and re-add for latest transcript
+    vector_store.delete(ids=["transcript-001"])
+    document = Document(
+        page_content=transcript_text,
+        metadata={"source": "live-transcript"},
+        id="transcript-001"
+    )
     vector_store.add_documents(documents=[document], ids=["transcript-001"])
 
-retriever = vector_store.as_retriever(search_kwargs={"k": 1})
+def get_retriever():
+    return vector_store.as_retriever(search_kwargs={"k": 1})
