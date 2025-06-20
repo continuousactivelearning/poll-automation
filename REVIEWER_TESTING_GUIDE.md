@@ -372,7 +372,7 @@ echo "✅ Quick test suite completed!"
 
 **Questions or Issues?**
 - **GitHub**: Create issue with `reviewer-question` label
-- **Email**: chaitanyabaggam3@gmail.com
+- **Email**: gayathrivantharam9@gmail.com
 - **PR Comments**: Comment directly on the PR
 
 **Thank you for reviewing! 🙏**

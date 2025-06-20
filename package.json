@@ -11,11 +11,11 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "dev:frontend": "pnpm run dev --filter=frontend",
+    "dev:frontend": "pnpm run dev --filter=@poll-automation/frontend",
     "dev:backend": "pnpm run dev --filter=@poll-automation/backend",
     "dev:whisper": "pnpm run dev --filter=@poll-automation/whisper",
     "build": "turbo run build",
-    "build:frontend": "pnpm run build --filter=frontend",
+    "build:frontend": "pnpm run build --filter=@poll-automation/frontend",
     "build:backend": "pnpm run build --filter=@poll-automation/backend",
     "lint": "turbo run lint",
     "test": "turbo run test",
