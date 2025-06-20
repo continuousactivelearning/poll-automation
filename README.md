@@ -2,25 +2,45 @@
 
 Poll Automation App is a standalone, open-source web application designed to intelligently generate and manage live polls in real-time during lectures, webinars, or meetings — without being tied to any specific video conferencing platform.
 
-## 📁 Monorepo Folder Structure (Turborepo)
+## 📁 Monorepo Project Structure (Turborepo)
 
 ```
 poll-automation/
 ├── apps/
-│   ├── frontend/         # Vite React TypeScript frontend
-│   └── backend/          # Express/Vite backend
+│   ├── backend/                  # Express + WebSocket backend
+│   │   ├── src/
+│   │   │   ├── transcription/    # Whisper routing + service logic
+│   │   │   ├── websocket/        # WS handlers and connections
+│   │   │   └── index.ts          # Server entry point
+│   │   └── package.json
+│   └── frontend/                 # Vite + React + TypeScript frontend
+│       ├── src/
+│       │   ├── components/       # Reusable UI components
+│       │   ├── utils/            # Microphone & upload logic
+│       │   └── main.tsx         # App entry point
+│       └── package.json
 ├── services/
-│   ├── whisper/          # Python service for audio transcription (Whisper)
-│   └── pollgen-llm/      # Poll generation logic using API/Local LLMs
+│   ├── whisper/                  # Python transcription service (Faster-Whisper)
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── whisper-env/         # Virtual environment (local only)
+│   ├── pollgen-llm/              # LLM-based poll generation (local/API)
+│   │   ├── main.py
+│   │   ├── server.py             # FastAPI backend for poll generation
+│   │   └── vector.py             # Embedding-based logic
+│   └── pollgen-gemini/           # Gemini API-based poll generation
+│       ├── gemini.py
+│       └── chunker.py
 ├── shared/
-│   ├── types/            # Shared TypeScript types
-│   └── utils/            # Shared utility functions
+│   ├── types/                    # Shared types/interfaces (TypeScript)
+│   └── utils/                    # Shared audio utilities
 ├── .github/
-│   └── workflows/        # CI/CD pipelines
-├── package.json          # Root config with workspaces
-├── turbo.json            # Turborepo pipeline config
+│   └── workflows/                # GitHub Actions (CI/CD)
+├── package.json                  # Root config with workspaces
+├── turbo.json                    # Turborepo config
+├── pnpm-workspace.yaml           # Defines all workspace packages
 ├── .gitignore
-└── README.md
+├── README.md
 ```
 
 ## 🚀 Getting Started
@@ -67,7 +87,6 @@ pip install -r requirements.gpu.txt --extra-index-url https://download.pytorch.o
 This will install `torch`, `torchaudio`, and `torchvision` with CUDA 12.1 support.
 Make sure your system has the correct CUDA runtime installed.
 
-
 ## 🔧 .env Configuration
 
 ### `apps/backend/.env`
@@ -81,6 +100,27 @@ WHISPER_WS_URL=ws://localhost:8000
 
 ```
 VITE_BACKEND_WS_URL=ws://localhost:3000
+```
+
+### `services/whisper/.env`
+
+```
+# Configuration for the Whisper Service
+WHISPER_MODEL_SIZE=small
+BUFFER_DURATION_SECONDS=60
+# Port for the Whisper service
+WHISPER_SERVICE_PORT=8000
+
+# -------------------------------------------
+# Available Faster-Whisper model sizes:
+# 
+# 1. tiny
+# 2. base
+# 3. small
+# 4. medium
+# 5. large-v1
+# 6. large-v2
+# 7. large-v3
 ```
 
 ### Global Prerequisites
