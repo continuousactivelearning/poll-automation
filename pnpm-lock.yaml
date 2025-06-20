@@ -3650,8 +3650,13 @@ packages:
     engines: {node: '>=0.10.0'}
     hasBin: true
 
+<<<<<<< HEAD
   electron-to-chromium@1.5.171:
     resolution: {integrity: sha512-scWpzXEJEMrGJa4Y6m/tVotb0WuvNmasv3wWVzUAeCgKU0ToFOhUW6Z+xWnRQANMYGxN4ngJXIThgBJOqzVPCQ==}
+=======
+  electron-to-chromium@1.5.170:
+    resolution: {integrity: sha512-GP+M7aeluQo9uAyiTCxgIj/j+PrWhMlY7LFVj8prlsPljd0Fdg9AprlfUi+OCSFWy9Y5/2D/Jrj9HS8Z4rpKWA==}
+>>>>>>> 4be4a956fd128fd13f5a552eadad68c071fb4013
 
   emittery@0.10.2:
     resolution: {integrity: sha512-aITqOwnLanpHLNXZJENbOgjUBeHocD+xsSJmNrjovKBW5HbSpW3d1pEls7GFQPUWXiwG9+0P4GtHfEqC/4M0Iw==}
@@ -10149,7 +10154,11 @@ snapshots:
 
   '@types/nodemailer@6.4.17':
     dependencies:
+<<<<<<< HEAD
       '@types/node': 20.19.1
+=======
+      '@types/node': 24.0.3
+>>>>>>> 4be4a956fd128fd13f5a552eadad68c071fb4013
 
   '@types/parse-json@4.0.2': {}
 
@@ -11134,7 +11143,11 @@ snapshots:
   browserslist@4.25.0:
     dependencies:
       caniuse-lite: 1.0.30001723
+<<<<<<< HEAD
       electron-to-chromium: 1.5.171
+=======
+      electron-to-chromium: 1.5.170
+>>>>>>> 4be4a956fd128fd13f5a552eadad68c071fb4013
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.25.0)
 
@@ -11819,7 +11832,11 @@ snapshots:
     dependencies:
       jake: 10.9.2
 
+<<<<<<< HEAD
   electron-to-chromium@1.5.171: {}
+=======
+  electron-to-chromium@1.5.170: {}
+>>>>>>> 4be4a956fd128fd13f5a552eadad68c071fb4013
 
   emittery@0.10.2: {}
 
