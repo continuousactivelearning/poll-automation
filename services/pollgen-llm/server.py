@@ -1,3 +1,6 @@
+import pathlib
+#Reason for adding the home directory: Force the home directory to avoid Path.home() failure in Windows subprocesses used by ChromaDB
+pathlib.Path.home = lambda: pathlib.Path("C:/Users/keerthana J") #Add your home directory here
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,9 +10,9 @@ from pathlib import Path
 from datetime import datetime
 import json, asyncio
 from bson import ObjectId
-
 from gemini_generate import generate_questions_with_gemini
 from generate_local import generate_questions_with_local_llm
+
 
 #MongoDB Setup
 from pymongo import MongoClient
@@ -124,7 +127,7 @@ def convert_object_ids(data):
 
 @app.post("/generate")
 def generate_from_transcript():
-    print("🤖 Generation requested...")
+    print("Generation requested...")
     start=datetime.now()
     
 

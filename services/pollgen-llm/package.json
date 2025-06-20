@@ -1,18 +1,12 @@
 {
   "name": "pollgen-llm",
   "version": "1.0.0",
-  "main": "src/index.ts",
+  "private": true,
+  "description":"FastAPI-based service that generates questions from meeting transcripts using Gemini and a local LLM (Llama 3.2). Supports real-time updates via WebSocket and stores generated questions in MongoDB. Includes host-settings management, transcripts rotation, and CORS-enabled endpoints for seamless frontend integration in educational applications.",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc"
-  },
-  "dependencies": {
-    "chalk": "^5.3.0",
-    "node-cron": "^3.0.2"
-  },
-  "devDependencies": {
-    "@types/node-cron": "^3.0.11",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.4.0"
+    "setup": "python -m venv pollgenenv",
+    "install-deps": "pollgenenv\\Scripts\\pip install -r requirements.txt",
+    "dev": "pollgenenv\\Scripts\\python -m uvicorn server:app --host 0.0.0.0 --port 5001 --reload",
+    "test": "pollgenenv\\Scripts\\python -m pytest tests"
   }
 }
