@@ -2,25 +2,49 @@
 
 Poll Automation App is a standalone, open-source web application designed to intelligently generate and manage live polls in real-time during lectures, webinars, or meetings — without being tied to any specific video conferencing platform.
 
-## 📁 Monorepo Folder Structure (Turborepo)
+## ⚙️ Project Pipeline
+
+[![](https://mermaid.ink/img/pako:eNqVlVtu2zgUhrdCsCjQYqRAki3L1gAFrNtMB3HrRgEC1O4DIzERJzIpkFQTT5otdAt96QK7hJKipMTTFoX9YOicQ37nwh_kPSxYiWEIr2p2W1SIS3B6tqVA_Z4_B8u2JAzkrOUFNs4VKTbfvnz-Cv5mQvbx17Rp5YcwDHekALb96tMWnuGC8ZLQa_CRILDCJUHGhfkWfgLLTcYZlZiWwNZIzpqKUZxLjtEOc8266hds6VjNukICAzcE-fk5eJE3GBeVLZl9ju_kS7Nq2efPpe7kDxARivje1KkTR5sIFTcm7xvV-Mm_AlzkIMf8o0l7acKGFvW0jPFbxEuwjlcgrlp6IzQr3lxURDSYd9tJgRUzQ0Iu16-7BtQnaoghxT3pnCMqCk4aSRgF_-Rv33RVHaZLd0SCMyzaWnbju8CXOVNlyW50PwzEC8Hp6Qq8a7HoqH9hijnSn4fYXLf9WMCYPdmsWV2rXR3G_gHEusHU9c7gkh7XR3E5bhA_6SWv2O3hgnTTSSdBorpkeqq26hUVnYAqFTH707HoGhdPk_wkx7oVFZAM6DZ0ONvksi0x_UUSYYKGkY2CMTvU2BtVKB56GWedy32t9GzsokZCJPgKaMVfkboOn2VZGqWpJSRnNzh8FgVu7MZWwWrGR8sE7VtSyir0mjuL34WuY_G9-v_zf-RB_z0-dbIgW454x5k5s-mA761j8L3Ox-KzSeqM9DSbxY4z0HvrqOKN9ofa55mfLka6lwbJxBvovXUMXUlxqDtOp2k8kmPPnfvRQO6tY8haf0PRbuZnj-fpeEEQJePAjXUMulfd48CTNBjp2WI59_yB3lu_oT_h6ytUS_FpTnUVDhI6cEfD0R944-HIDryJHvWBJ-1GdODKhtaUF1pQXd87REr1otzrVVsoK7zDWxiqzxLxmy3c0ge1DrWS5XtawFDyFluQs_a6gurWrIWy2qZUV0tC0DVHu9HbIPqesd2wRZkwvId3MLTduXsyCRx_Og0Wk4XvTAML7mGoFHASTJzZzPecmefNfP_Bgv91COdk4c_n3mLhOGq96_sTC6pnSt12K_Mgdu-iBa-5bqavUY0N85i1VCq2Fzx8B4HXS30?type=png)](https://mermaid.live/edit#pako:eNqVlVtu2zgUhrdCsCjQYqRAki3L1gAFrNtMB3HrRgEC1O4DIzERJzIpkFQTT5otdAt96QK7hJKipMTTFoX9YOicQ37nwh_kPSxYiWEIr2p2W1SIS3B6tqVA_Z4_B8u2JAzkrOUFNs4VKTbfvnz-Cv5mQvbx17Rp5YcwDHekALb96tMWnuGC8ZLQa_CRILDCJUHGhfkWfgLLTcYZlZiWwNZIzpqKUZxLjtEOc8266hds6VjNukICAzcE-fk5eJE3GBeVLZl9ju_kS7Nq2efPpe7kDxARivje1KkTR5sIFTcm7xvV-Mm_AlzkIMf8o0l7acKGFvW0jPFbxEuwjlcgrlp6IzQr3lxURDSYd9tJgRUzQ0Iu16-7BtQnaoghxT3pnCMqCk4aSRgF_-Rv33RVHaZLd0SCMyzaWnbju8CXOVNlyW50PwzEC8Hp6Qq8a7HoqH9hijnSn4fYXLf9WMCYPdmsWV2rXR3G_gHEusHU9c7gkh7XR3E5bhA_6SWv2O3hgnTTSSdBorpkeqq26hUVnYAqFTH707HoGhdPk_wkx7oVFZAM6DZ0ONvksi0x_UUSYYKGkY2CMTvU2BtVKB56GWedy32t9GzsokZCJPgKaMVfkboOn2VZGqWpJSRnNzh8FgVu7MZWwWrGR8sE7VtSyir0mjuL34WuY_G9-v_zf-RB_z0-dbIgW454x5k5s-mA761j8L3Ox-KzSeqM9DSbxY4z0HvrqOKN9ofa55mfLka6lwbJxBvovXUMXUlxqDtOp2k8kmPPnfvRQO6tY8haf0PRbuZnj-fpeEEQJePAjXUMulfd48CTNBjp2WI59_yB3lu_oT_h6ytUS_FpTnUVDhI6cEfD0R944-HIDryJHvWBJ-1GdODKhtaUF1pQXd87REr1otzrVVsoK7zDWxiqzxLxmy3c0ge1DrWS5XtawFDyFluQs_a6gurWrIWy2qZUV0tC0DVHu9HbIPqesd2wRZkwvId3MLTduXsyCRx_Og0Wk4XvTAML7mGoFHASTJzZzPecmefNfP_Bgv91COdk4c_n3mLhOGq96_sTC6pnSt12K_Mgdu-iBa-5bqavUY0N85i1VCq2Fzx8B4HXS30)
+
+## 📁 Monorepo Project Structure (Turborepo)
 
 ```
 poll-automation/
 ├── apps/
-│   ├── frontend/         # Vite React TypeScript frontend
-│   └── backend/          # Express/Vite backend
+│   ├── backend/                  # Express + WebSocket backend
+│   │   ├── src/
+│   │   │   ├── transcription/    # Whisper routing + service logic
+│   │   │   ├── websocket/        # WS handlers and connections
+│   │   │   └── index.ts          # Server entry point
+│   │   └── package.json
+│   └── frontend/                 # Vite + React + TypeScript frontend
+│       ├── src/
+│       │   ├── components/       # Reusable UI components
+│       │   ├── utils/            # Microphone & upload logic
+│       │   └── main.tsx         # App entry point
+│       └── package.json
 ├── services/
-│   ├── whisper/          # Python service for audio transcription (Whisper)
-│   └── pollgen-llm/      # Poll generation logic using API/Local LLMs
+│   ├── whisper/                  # Python transcription service (Faster-Whisper)
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── whisper-env/         # Virtual environment (local only)
+│   ├── pollgen-llm/              # LLM-based poll generation (local/API)
+│   │   ├── main.py
+│   │   ├── server.py             # FastAPI backend for poll generation
+│   │   └── vector.py             # Embedding-based logic
+│   └── pollgen-gemini/           # Gemini API-based poll generation
+│       ├── gemini.py
+│       └── chunker.py
 ├── shared/
-│   ├── types/            # Shared TypeScript types
-│   └── utils/            # Shared utility functions
+│   ├── types/                    # Shared types/interfaces (TypeScript)
+│   └── utils/                    # Shared audio utilities
 ├── .github/
-│   └── workflows/        # CI/CD pipelines
-├── package.json          # Root config with workspaces
-├── turbo.json            # Turborepo pipeline config
+│   └── workflows/                # GitHub Actions (CI/CD)
+├── package.json                  # Root config with workspaces
+├── turbo.json                    # Turborepo config
+├── pnpm-workspace.yaml           # Defines all workspace packages
 ├── .gitignore
-└── README.md
+├── README.md
 ```
 
 ## 🚀 Getting Started
@@ -67,7 +91,6 @@ pip install -r requirements.gpu.txt --extra-index-url https://download.pytorch.o
 This will install `torch`, `torchaudio`, and `torchvision` with CUDA 12.1 support.
 Make sure your system has the correct CUDA runtime installed.
 
-
 ## 🔧 .env Configuration
 
 ### `apps/backend/.env`
@@ -81,6 +104,27 @@ WHISPER_WS_URL=ws://localhost:8000
 
 ```
 VITE_BACKEND_WS_URL=ws://localhost:3000
+```
+
+### `services/whisper/.env`
+
+```
+# Configuration for the Whisper Service
+WHISPER_MODEL_SIZE=small
+BUFFER_DURATION_SECONDS=60
+# Port for the Whisper service
+WHISPER_SERVICE_PORT=8000
+
+# -------------------------------------------
+# Available Faster-Whisper model sizes:
+# 
+# 1. tiny
+# 2. base
+# 3. small
+# 4. medium
+# 5. large-v1
+# 6. large-v2
+# 7. large-v3
 ```
 
 ### Global Prerequisites
