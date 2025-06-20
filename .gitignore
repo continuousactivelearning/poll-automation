@@ -4,6 +4,8 @@
 **/.build/
 **/.cache/
 **/*.log
+**/out/
+**/public/build/
 
 # Turborepo cache
 turbo/
@@ -21,6 +23,10 @@ pnpm-lock.yaml
 # OS files
 **/.DS_Store
 **/Thumbs.db
+**/.Trash/
+**/.AppleDouble
+**/.Spotlight-V100
+**/.fseventsd
 
 # IDEs
 **/.vscode/
@@ -28,6 +34,8 @@ pnpm-lock.yaml
 
 # TypeScript
 **/*.tsbuildinfo
+**/.tscache/
+**/.eslintcache
 
 # Logs
 **/npm-debug.log*
@@ -35,6 +43,7 @@ pnpm-lock.yaml
 **/yarn-debug.log*
 **/yarn-error.log*
 **/lerna-debug.log*
+*.pid
 
 # Test coverage / test reports
 **/coverage/
@@ -42,6 +51,10 @@ pnpm-lock.yaml
 **/.vitest/
 **/jest-cache/
 **/jest-*
+**/test-results/
+**/junit.xml
+**/coverage-final.json
+**/coverage*.lcov
 
 # GitHub workflows artifacts (optional)
 **/.github/workflows/*.log
@@ -61,6 +74,29 @@ services/whisper/setup.bat
 services/whisper/__pycache__
 services/whisper/install_pytorch.py
 services/whisper/~
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.so
+
+# Python environments
+**/env/
+**/venv/
+**/.venv/
+**/venv.bak/
+**/.Python
+**/pip-wheel-metadata/
+**/pip-selfcheck.json
+**/pyvenv.cfg
 
 # Pollgen env
 services/pollgen-llm/pollgenenv/
+
+# Swap/Temp/Backup files
+*.swp
+*.swo
+*.bak
+*.tmp
+*.temp
+*~
