@@ -16,7 +16,7 @@ const LandingPage: React.FC = () => {
   const testConnection = async () => {
     try {
       console.log('Testing connection to backend...');
-      const response = await fetch('http://localhost:3000/api/auth/test');
+      const response = await fetch('/api/auth/test');
       const data = await response.json();
       console.log('Connection test result:', data);
       alert('Connection successful! Check console for details.');

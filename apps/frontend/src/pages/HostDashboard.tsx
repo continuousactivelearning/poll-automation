@@ -48,7 +48,7 @@ const HostDashboard: React.FC = () => {
       onClick: () => window.location.href = '/host'
     },
     {
-      id: 'poll-control',
+      id: 'polls',
       label: 'Poll Control',
       icon: '📊',
       description: 'Create and manage polls',
