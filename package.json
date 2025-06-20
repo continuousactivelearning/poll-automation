@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-   "workspaces": [
+  "workspaces": [
     "apps/*",
     "services/*",
     "shared/*"
@@ -19,6 +19,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.1",
   "devDependencies": {
+    "@types/node": "^24.0.3",
     "turbo": "^2.5.4"
   }
 }
