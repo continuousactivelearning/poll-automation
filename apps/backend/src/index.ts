@@ -10,7 +10,7 @@ import mongoose from 'mongoose';
 import audioRoutes from './routes/audio';
 import authRoutes from './routes/auth';
 import geminiService from './services/geminiService';
-import { setupWebSocketServer } from './websocket/connection';
+// import { setupWebSocketServer } from './websocket/connection'; // Temporarily commented out until websocket module is created
 import hostSettingsRouter from './host-settings/routes';
 
 // Initialize Express app
@@ -288,4 +288,4 @@ server.listen(PORT, () => {
 });
 
 // Setup additional WebSocket functionality
-setupWebSocketServer(server);
+// setupWebSocketServer(server); // Temporarily commented out until websocket module is created

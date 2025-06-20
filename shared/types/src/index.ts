@@ -14,7 +14,7 @@ export type WhisperResult = { text: string; confidence: number };
 export type AudioChunk = { data: Buffer; timestamp: number };
 export type TranscriptionResult = { transcript: string; confidence: number };
 export type SomeType = any; // Replace with your actual type
-export * from './websocket';
+// export * from './websocket'; // Temporarily commented out until websocket module is created
 export * from './HostSettings';
 
 // Re-export commonly used items for convenience
