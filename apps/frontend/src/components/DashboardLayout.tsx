@@ -1,4 +1,6 @@
-import React, { ReactNode } from 'react';
+//poll-automation\apps\frontend\src\components\DashboardLayout.tsx
+import React from 'react';
+import type { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 
 interface DashboardLayoutProps {

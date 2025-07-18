@@ -1,39 +1,64 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { Mail, Lock, Eye, EyeOff, Brain, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import GlassCard from '../components/GlassCard';
+// Removed: import axios from 'axios'; // No longer directly used here
 
 interface LoginForm {
   email: string;
   password: string;
 }
 
+// API_BASE_URL is not directly used in this component anymore, as login is handled by AuthContext
+// const API_BASE_URL = 'http://localhost:3000/api/auth'; 
+
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login } = useAuth(); // Get the login function from AuthContext
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<LoginForm>();
   const params = new URLSearchParams(location.search);
   const redirect = params.get("redirect");
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
+    // Clear previous errors from specific fields and root
+    setError('email', { type: 'manual', message: '' });
+    setError('password', { type: 'manual', message: '' });
+    setError('root.serverError', { type: 'manual', message: '' });
+
     try {
+      // FIXED: Call login from useAuth correctly with email and password
+      // The useAuth().login function now handles the axios call, token storage, and user state update.
       await login(data.email, data.password);
+
+      // Redirect based on 'redirect' parameter or default to /host
       if (redirect === 'create-poll') {
         navigate('/host/create-poll');
       } else if (redirect === 'join-poll') {
         navigate('/student/join-poll');
       } else {
-        navigate('/host');
+        navigate('/host'); 
       }
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch (error: any) {
+      console.error('Login failed:', error.response?.data || error.message);
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+
+      // Display error message directly under the fields based on backend response
+      if (errorMessage.includes('Invalid credentials')) {
+        setError('email', { type: 'manual', message: 'Invalid email or password' });
+        setError('password', { type: 'manual', message: '' }); // Clear password error if email is primary issue
+      } else if (errorMessage.includes('Please enter all fields')) {
+        setError('email', { type: 'manual', message: 'Email and password are required' });
+        setError('password', { type: 'manual', message: 'Email and password are required' });
+      } else {
+        setError('root.serverError', { type: 'manual', message: errorMessage });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +118,7 @@ const LoginPage = () => {
                   })}
                   className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base"
                   placeholder="Enter your email"
+                  autoComplete="email"
                 />
               </div>
               {errors.email && (
@@ -118,6 +144,7 @@ const LoginPage = () => {
                   })}
                   className="w-full pl-9 sm:pl-10 pr-10 sm:pr-12 py-2 sm:py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base"
                   placeholder="Enter your password"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -131,6 +158,11 @@ const LoginPage = () => {
                 <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
               )}
             </div>
+
+            {/* General server error message (if any) */}
+            {errors.root?.serverError && (
+              <p className="mt-1 text-sm text-red-400 text-center">{errors.root.serverError.message}</p>
+            )}
 
             {/* Submit Button */}
             <motion.button
@@ -174,16 +206,6 @@ const LoginPage = () => {
                 <img src="https://www.svgrepo.com/show/448234/linkedin.svg" alt="LinkedIn" className="w-5 h-5 bg-white rounded" />
                 Sign in with LinkedIn
               </a>
-              {/* Add more providers as needed, e.g. GitHub, Facebook */}
-              {/* 
-    <a
-      href="/auth/github" // TODO: Replace with your backend GitHub OAuth endpoint
-      className="flex items-center justify-center gap-2 bg-gray-900 text-white font-semibold py-2 rounded-lg shadow hover:bg-gray-800 transition-all"
-    >
-      <img src="https://www.svgrepo.com/show/512317/github-142.svg" alt="GitHub" className="w-5 h-5 bg-white rounded" />
-      Sign in with GitHub
-    </a>
-    */}
             </div>
           </div>
 

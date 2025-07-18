@@ -1,3 +1,4 @@
+// poll-automation\apps\frontend\src\components\AIControlPanel.tsx
 "use client"
 
 import type React from "react"

@@ -110,3 +110,5 @@ repomix*
 
 #bat files logs
 .installed.flag
+/services/
+/shared/

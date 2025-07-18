@@ -22,74 +22,55 @@ import {
 import GlassCard from "../components/GlassCard"
 import DashboardLayout from "../components/DashboardLayout"
 import * as XLSX from "xlsx"
+import axios from "axios" // Import axios for API calls
+import { useAuth } from "../contexts/AuthContext" // To get the user token
+import { useNotificationContext } from "../contexts/NotificationContext" // For notifications
 
 interface StudentInvite {
-  name: string
+  name?: string // Made optional as per backend model
   email: string
 }
 
-const POLL_STORAGE_KEY = "activePollSession";
+// Define the structure of a session returned from the backend
+interface Session {
+  _id: string;
+  roomCode: string;
+  sessionTitle: string;
+  host: string; // Host User ID
+  hostName: string;
+  hostEmail: string;
+  createdAt: string; // ISO date string
+  endedAt: string; // ISO date string
+  isActive: boolean;
+  allowedParticipants?: StudentInvite[]; // Optional, backend might not send this to frontend
+  approvedPollsCount: number;
+}
+
+const POLL_STORAGE_KEY = "activePollSession"; // Key for localStorage to store session ID
+
+const API_BASE_URL = 'http://localhost:3000/api'; // Your backend API base URL
 
 const CreatePollPage: React.FC = () => {
+  const { user, token } = useAuth(); // Get authenticated user and token
+  const { showNotification } = useNotificationContext(); // For showing success/error toasts
+
   const [roomCode, setRoomCode] = useState("")
   const [csvFile, setCsvFile] = useState<File | null>(null)
-  const [students, setStudents] = useState<StudentInvite[]>([])
+  const [students, setStudents] = useState<StudentInvite[]>([]) // Students from CSV
   const [isDragOver, setIsDragOver] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSendingInvites, setIsSendingInvites] = useState(false)
+  const [isLoading, setIsLoading] = useState(false) // For Create Poll Session button
+  const [isSendingInvites, setIsSendingInvites] = useState(false) // For Send Invites button
   const [isDestroying, setIsDestroying] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
-  const [errors, setErrors] = useState<{ csv?: string }>({})
+  const [errors, setErrors] = useState<{ csv?: string; api?: string }>({}) // Added API error
   const [isPollActive, setIsPollActive] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState(3 * 60 * 60) // 3 hours in seconds
+  const [timeRemaining, setTimeRemaining] = useState(3 * 60 * 60) // Default 3 hours in seconds
   const [invitesSent, setInvitesSent] = useState(false)
   const [roomName, setRoomName] = useState("");
   const [roomNameError, setRoomNameError] = useState("");
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null); // Stores the _id of the active session
 
-  // Load poll session from localStorage if active
-  useEffect(() => {
-    const saved = localStorage.getItem(POLL_STORAGE_KEY);
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        if (data.isPollActive) {
-          setRoomCode(data.roomCode || "");
-          setRoomName(data.roomName || "");
-          setTimeRemaining(
-            typeof data.timeRemaining === "number"
-              ? data.timeRemaining
-              : 3 * 60 * 60
-          );
-          setIsPollActive(true);
-        } else {
-          setRoomCode(generateRoomCode());
-        }
-      } catch {
-        setRoomCode(generateRoomCode());
-      }
-    } else {
-      setRoomCode(generateRoomCode());
-    }
-  }, []);
-
-  // Persist poll session to localStorage only if poll is active
-  useEffect(() => {
-    if (isPollActive) {
-      localStorage.setItem(
-        POLL_STORAGE_KEY,
-        JSON.stringify({
-          roomCode,
-          roomName,
-          timeRemaining,
-          isPollActive: true,
-        })
-      );
-    } else {
-      localStorage.removeItem(POLL_STORAGE_KEY);
-    }
-  }, [isPollActive, roomCode, roomName, timeRemaining]);
-
-  // Generate random room code
+  // Function to generate random room code (Frontend only)
   const generateRoomCode = (): string => {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     let result = ""
@@ -99,25 +80,172 @@ const CreatePollPage: React.FC = () => {
     return result
   }
 
-  // Handle room code regeneration
+  // Load poll session from localStorage or fetch from backend if active
+  useEffect(() => {
+    const savedSessionId = localStorage.getItem(POLL_STORAGE_KEY);
+    if (savedSessionId && token && user?.id) { // Ensure user.id is available
+      const fetchActiveSession = async () => {
+        try {
+          const config = { // Define config here
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          };
+          const response = await axios.get<any, { data: { session: Session } }>(
+            `${API_BASE_URL}/sessions/${savedSessionId}`,
+            config
+          );
+          const fetchedSession = response.data.session;
+
+          // Check if the fetched session is still active and belongs to the current user
+          if (fetchedSession.isActive && fetchedSession.host === user.id) { // Use user.id directly
+            setRoomCode(fetchedSession.roomCode);
+            setRoomName(fetchedSession.sessionTitle);
+            setActiveSessionId(fetchedSession._id);
+            setIsPollActive(true);
+
+            // *** NEW: Restore students and invitesSent state from fetched session ***
+            if (fetchedSession.allowedParticipants && fetchedSession.allowedParticipants.length > 0) {
+              setStudents(fetchedSession.allowedParticipants);
+              setInvitesSent(true); // If participants were saved, invites were sent
+              setShowPreview(true); // Automatically show preview
+            } else {
+              setStudents([]);
+              setInvitesSent(false);
+              setShowPreview(false);
+            }
+            // *** END NEW ***
+
+            // Calculate time remaining based on endedAt from backend
+            const now = new Date().getTime();
+            const endedAtTime = new Date(fetchedSession.endedAt).getTime();
+            const remaining = Math.max(0, Math.floor((endedAtTime - now) / 1000));
+            setTimeRemaining(remaining);
+
+            if (remaining === 0) {
+              setIsPollActive(false); // If time already ran out
+              showNotification("Active session has expired.", "info");
+              localStorage.removeItem(POLL_STORAGE_KEY); // Clear expired session
+            } else {
+              showNotification("Active session loaded from backend.", "info");
+            }
+          } else {
+            console.log("Existing session is not active or does not belong to current user. Clearing.");
+            localStorage.removeItem(POLL_STORAGE_KEY); // Clear stale session ID
+            setRoomCode(generateRoomCode());
+            setIsPollActive(false);
+            setRoomName(""); // Clear room name
+            setActiveSessionId(null);
+            setStudents([]); // Clear students on reset
+            setInvitesSent(false); // Reset invites on reset
+            setShowPreview(false); // Hide preview on reset
+          }
+        } catch (error: any) {
+          console.error("Error fetching active session:", error.response?.data || error.message);
+          showNotification("Failed to load active session. It might have expired or been destroyed.", "error");
+          localStorage.removeItem(POLL_STORAGE_KEY); // Clear stale session ID
+          setRoomCode(generateRoomCode());
+          setIsPollActive(false);
+          setRoomName(""); // Clear room name
+          setActiveSessionId(null);
+          setStudents([]); // Clear students on error
+          setInvitesSent(false); // Reset invites on error
+          setShowPreview(false); // Hide preview on error
+        }
+      };
+      fetchActiveSession();
+    } else {
+      console.log("No saved session ID or token/user ID missing. Generating new room code.");
+      setRoomCode(generateRoomCode()); // Generate new code if no saved session or no token
+      setIsPollActive(false); // Ensure poll is not active if no session loaded
+      setRoomName(""); // Clear room name
+      setActiveSessionId(null);
+      setStudents([]); // Clear students on initial load if no session
+      setInvitesSent(false); // Reset invites on initial load
+      setShowPreview(false); // Hide preview on initial load
+    }
+  }, [token, user?.id]); // Re-run if token or user ID changes
+
+  // Persist active session ID to localStorage
+  useEffect(() => {
+    if (isPollActive && activeSessionId) {
+      localStorage.setItem(POLL_STORAGE_KEY, activeSessionId);
+    } else {
+      localStorage.removeItem(POLL_STORAGE_KEY);
+    }
+  }, [isPollActive, activeSessionId]);
+
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPollActive && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            setIsPollActive(false);
+            showNotification("Session has ended.", "info");
+            localStorage.removeItem(POLL_STORAGE_KEY); // Clear session from local storage on end
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (timeRemaining === 0 && isPollActive) {
+      setIsPollActive(false); // Ensure state is false if time runs out
+      showNotification("Session has ended.", "info");
+      localStorage.removeItem(POLL_STORAGE_KEY); // Clear session from local storage on end
+    }
+    return () => clearInterval(interval);
+  }, [isPollActive, timeRemaining, showNotification]);
+
+  // Handle room code regeneration (Frontend only, if poll not active)
   const handleRegenerateCode = () => {
     if (!isPollActive) {
-      setRoomCode(generateRoomCode())
+      setRoomCode(generateRoomCode());
     }
   }
 
-  // Handle destroy room
-  const handleDestroyRoom = () => {
-    setIsDestroying(true)
-    setTimeout(() => {
-      setIsPollActive(false)
-      setTimeRemaining(3 * 60 * 60) // Reset to 3 hours
-      setRoomCode(generateRoomCode()) // Generate new code
-      setIsDestroying(false)
-      localStorage.removeItem(POLL_STORAGE_KEY) // Clear persisted session
-      console.log("Room destroyed and reset")
-    }, 1500)
-  }
+  // Handle destroy room (Backend call)
+  const handleDestroyRoom = async () => {
+    if (!activeSessionId || !token) {
+      showNotification("No active session to destroy.", "error");
+      return;
+    }
+
+    setIsDestroying(true);
+    try {
+      const config = { // Define config here
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const response = await axios.put<any, { data: { message: string, session: Session } }>(
+        `${API_BASE_URL}/sessions/${activeSessionId}/deactivate`,
+        {},
+        config
+      );
+      
+      console.log("Session destruction response (Frontend):", response.data); // Log response
+      showNotification(response.data.message || "Session destroyed successfully.", "success");
+
+      // Update frontend state based on successful backend response
+      setIsPollActive(false);
+      setTimeRemaining(3 * 60 * 60); // Reset to default 3 hours
+      setRoomCode(generateRoomCode()); // Generate new code
+      setActiveSessionId(null); // Clear active session ID
+      setInvitesSent(false); // Reset invite status
+      setStudents([]); // Clear student list
+      setCsvFile(null); // Clear CSV file
+      setRoomName(""); // Clear room name
+      setErrors({}); // Clear any errors
+      
+    } catch (error: any) {
+      console.error("Error destroying room (Frontend):", error.response?.data || error.message);
+      showNotification(error.response?.data?.message || "Failed to destroy session.", "error");
+    } finally {
+      setIsDestroying(false);
+    }
+  };
 
   // Format time remaining
   const formatTime = (seconds: number): string => {
@@ -127,33 +255,39 @@ const CreatePollPage: React.FC = () => {
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  // Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (isPollActive && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            setIsPollActive(false)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
+  // Extend time (Backend call)
+  const handleExtendTime = async (hours: number) => {
+    if (!activeSessionId || !token) {
+      showNotification("No active session to extend.", "error");
+      return;
     }
-    return () => clearInterval(interval)
-  }, [isPollActive, timeRemaining])
 
-  // Extend time
-  const handleExtendTime = (hours: number) => {
-    setTimeRemaining((prev) => prev + hours * 60 * 60)
-  }
+    const extensionMinutes = hours * 60; // Convert hours to minutes
+    try {
+      const config = { // Define config here
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const response = await axios.put<any, { data: { session: Session } }>(
+        `${API_BASE_URL}/sessions/${activeSessionId}/extend`,
+        { extensionMinutes },
+        config
+      );
+      
+      const newEndedAt = new Date(response.data.session.endedAt).getTime();
+      const now = new Date().getTime();
+      const remaining = Math.max(0, Math.floor((newEndedAt - now) / 1000));
+      setTimeRemaining(remaining);
+      showNotification(`Session extended by ${hours} hour(s)!`, "success");
+      console.log(`Session ${activeSessionId} extended. New end time: ${response.data.session.endedAt}`); // Log extension
+    } catch (error: any) {
+      console.error("Error extending session:", error.response?.data || error.message);
+      showNotification(error.response?.data?.message || "Failed to extend session.", "error");
+    }
+  };
 
-
-
-
-
-  // Parse CSV content
+  // Parse CSV content (Frontend only)
   const parseCSV = (content: string): StudentInvite[] => {
     const lines = content.split("\n").filter((line) => line.trim())
     const headers = lines[0]
@@ -173,14 +307,14 @@ const CreatePollPage: React.FC = () => {
       .map((line) => {
         const values = line.split(",").map((v) => v.trim())
         return {
-          name: nameIndex !== -1 ? values[nameIndex] || "Unknown" : "Unknown",
+          name: nameIndex !== -1 ? values[nameIndex] || undefined : undefined, // Use undefined for optional
           email: values[emailIndex] || "",
         }
       })
       .filter((student) => student.email)
   }
 
-  // Handle file upload (CSV or Excel)
+  // Handle file upload (CSV or Excel) - Frontend parsing
   const handleFileUpload = useCallback(async (file: File) => {
     const isCSV = file.name.endsWith(".csv")
     const isXLS = file.name.endsWith(".xls") || file.name.endsWith(".xlsx")
@@ -190,8 +324,8 @@ const CreatePollPage: React.FC = () => {
       return
     }
 
-    setIsLoading(true)
-    setErrors((prev) => ({ ...prev, csv: undefined }))
+    setIsLoading(true) // Use isLoading for file parsing as well
+    setErrors((prev) => ({ ...prev, csv: undefined, api: undefined })) // Clear API errors too
 
     try {
       let parsedStudents: StudentInvite[] = []
@@ -217,7 +351,7 @@ const CreatePollPage: React.FC = () => {
           .slice(1)
           .filter((row) => row[emailIndex])
           .map((row) => ({
-            name: nameIndex !== -1 ? row[nameIndex]?.toString().trim() || "Unknown" : "Unknown",
+            name: nameIndex !== -1 ? row[nameIndex]?.toString().trim() || undefined : undefined,
             email: row[emailIndex]?.toString().trim() || "",
           }))
       }
@@ -229,6 +363,7 @@ const CreatePollPage: React.FC = () => {
       setStudents(parsedStudents)
       setCsvFile(file)
       setShowPreview(true)
+      setInvitesSent(false); // Reset invites sent status on new file upload
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
@@ -236,6 +371,8 @@ const CreatePollPage: React.FC = () => {
       }))
       setStudents([])
       setCsvFile(null)
+      setShowPreview(false)
+      setInvitesSent(false);
     } finally {
       setIsLoading(false)
     }
@@ -279,34 +416,81 @@ const CreatePollPage: React.FC = () => {
     setStudents([])
     setShowPreview(false)
     setInvitesSent(false)
-    setErrors((prev) => ({ ...prev, csv: undefined }))
+    setErrors((prev) => ({ ...prev, csv: undefined, api: undefined }))
   }
 
-  // Handle send invites
-  const handleSendInvites = () => {
-    if (students.length === 0) return
+  // Handle send invites (This will now be part of createSession, but kept for UX)
+  const handleSendInvites = async () => {
+    if (students.length === 0) return;
+    showNotification("Invitations will be sent upon session creation.", "info");
+    setInvitesSent(true); // Mark as true for UX feedback
+  };
 
-    setIsSendingInvites(true)
-    setTimeout(() => {
-      setIsSendingInvites(false)
-      setInvitesSent(true)
-      console.log("Invites sent to:", students)
-    }, 2000)
-  }
-
-  // Handle create poll
-  const handleCreatePoll = () => {
+  // Handle create poll (Backend call)
+  const handleCreatePoll = async () => {
     if (!roomName.trim()) {
       setRoomNameError("Room Name is required.");
       return;
     }
     setRoomNameError(""); // Clear error if valid
+
+    if (isPollActive) {
+      showNotification("A session is already active.", "info");
+      return;
+    }
+
+    if (!user || !token) {
+      showNotification("You must be logged in to create a session.", "error");
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setErrors((prev) => ({ ...prev, api: undefined })); // Clear previous API errors
+
+    try {
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      const payload = {
+        sessionTitle: roomName.trim(),
+        roomCode: roomCode.toUpperCase(), // Ensure uppercase for backend
+        initialDurationHours: timeRemaining / 3600, // Send current duration in hours
+        participants: students.length > 0 ? students : undefined, // Send participants only if CSV uploaded
+      };
+
+      const response = await axios.post<any, { data: { session: Session } }>(
+        `${API_BASE_URL}/sessions/create`,
+        payload,
+        config
+      );
+
+      const createdSession = response.data.session;
+      setActiveSessionId(createdSession._id); // Store the actual session ID from backend
       setIsPollActive(true);
-      console.log("Poll created with room code:", roomCode);
-    }, 2000);
+      setInvitesSent(students.length > 0); // Mark invites sent if participants were included
+      
+      // Update time remaining based on backend response's endedAt
+      const now = new Date().getTime();
+      const endedAtTime = new Date(createdSession.endedAt).getTime();
+      const remaining = Math.max(0, Math.floor((endedAtTime - now) / 1000));
+      setTimeRemaining(remaining);
+
+      showNotification("Poll session created successfully!", "success");
+      console.log("Created Session (Frontend):", createdSession); // Frontend console log
+
+    } catch (error: any) {
+      console.error("Error creating poll session (Frontend):", error.response?.data || error.message);
+      const errorMessage = error.response?.data?.message || "Failed to create poll session.";
+      setErrors((prev) => ({ ...prev, api: errorMessage }));
+      showNotification(errorMessage, "error");
+      setIsPollActive(false); // Ensure poll is not active on error
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -323,6 +507,21 @@ const CreatePollPage: React.FC = () => {
             <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Create A New Poll Session</h1>
             <p className="text-gray-400 text-lg">Set up your room code and optionally invite students</p>
           </motion.div>
+
+          {/* API Error Display */}
+          <AnimatePresence>
+            {errors.api && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-lg text-center max-w-md mx-auto"
+              >
+                <AlertCircle className="inline-block w-5 h-5 mr-2" />
+                {errors.api}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Section 1: Room Code Generator */}
@@ -361,6 +560,7 @@ const CreatePollPage: React.FC = () => {
                     className={`w-full px-4 py-2 bg-white/5 border ${roomNameError ? "border-red-500" : "border-white/10"} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition`}
                     maxLength={50}
                     required
+                    disabled={isPollActive} // Disable if session is active
                   />
                   {roomNameError && (
                     <p className="text-red-400 text-xs mt-1">{roomNameError}</p>
@@ -453,7 +653,7 @@ const CreatePollPage: React.FC = () => {
                     {isLoading ? (
                       <div className="flex items-center justify-center space-x-2">
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Creating Poll...</span>
+                        <span>Creating Session...</span> {/* Changed text */}
                       </div>
                     ) : isPollActive ? (
                       <div className="flex items-center justify-center space-x-2">
@@ -506,6 +706,7 @@ const CreatePollPage: React.FC = () => {
                       accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                       onChange={handleFileInputChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={isPollActive} // Disable file upload if session is active
                     />
 
                     <div className="space-y-4">
@@ -553,7 +754,7 @@ const CreatePollPage: React.FC = () => {
                             <p className="text-gray-400 text-xs">{students.length} students found</p>
                           </div>
                         </div>
-                        <button onClick={removeFile} className="p-1 hover:bg-white/10 rounded transition-colors">
+                        <button onClick={removeFile} className="p-1 hover:bg-white/10 rounded transition-colors" disabled={isPollActive}>
                           <X className="w-4 h-4 text-gray-400" />
                         </button>
                       </motion.div>
@@ -567,7 +768,7 @@ const CreatePollPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Send Invites Button */}
+                {/* Send Invites Button (Now just for UX, invites sent with session creation) */}
                 <AnimatePresence>
                   {students.length > 0 && (
                     <motion.div
@@ -577,11 +778,11 @@ const CreatePollPage: React.FC = () => {
                       className="mt-6 pt-6 border-t border-white/10"
                     >
                       <motion.button
-                        whileHover={!invitesSent ? { scale: 1.02 } : {}}
-                        whileTap={!invitesSent ? { scale: 0.98 } : {}}
-                        onClick={handleSendInvites}
-                        disabled={invitesSent || isSendingInvites}
-                        className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${invitesSent
+                        whileHover={!invitesSent && !isPollActive ? { scale: 1.02 } : {}}
+                        whileTap={!invitesSent && !isPollActive ? { scale: 0.98 } : {}}
+                        onClick={handleSendInvites} // Still calls this for UX feedback
+                        disabled={invitesSent || isSendingInvites || isPollActive} // Disable if session is active
+                        className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${invitesSent || isPollActive
                           ? "bg-green-600 text-white cursor-default"
                           : isSendingInvites
                             ? "bg-gray-600 text-gray-400 cursor-not-allowed"
@@ -614,7 +815,7 @@ const CreatePollPage: React.FC = () => {
 
           {/* Timer Section */}
           <AnimatePresence>
-            {isPollActive && (
+            {isPollActive && ( // Only show timer if poll is active
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -651,7 +852,7 @@ const CreatePollPage: React.FC = () => {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => setTimeRemaining(prev => prev + 30 * 60)} // 30 mins in seconds
+                          onClick={() => handleExtendTime(0.5)} // Send 0.5 hours for 30 mins
                           className="flex items-center justify-center space-x-1 px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg text-sm hover:shadow-lg transition-all duration-200"
                         >
                           <Plus className="w-3 h-3" />
@@ -744,10 +945,10 @@ const CreatePollPage: React.FC = () => {
                               className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg"
                             >
                               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                {student.name.charAt(0).toUpperCase()}
+                                {student.name ? student.name.charAt(0).toUpperCase() : student.email.charAt(0).toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white text-sm font-medium truncate">{student.name}</p>
+                                <p className="text-white text-sm font-medium truncate">{student.name || "No Name"}</p>
                                 <p className="text-gray-400 text-xs truncate">{student.email}</p>
                               </div>
                               {invitesSent && <div className="w-2 h-2 bg-green-400 rounded-full"></div>}

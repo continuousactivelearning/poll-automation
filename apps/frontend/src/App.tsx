@@ -3,12 +3,13 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LoadingProvider } from './contexts/LoadingContext';
-import { NotificationProvider } from './contexts/NotificationContext';
+import { NotificationProvider } from './contexts/NotificationContext'; 
 import AuthGuard from './components/AuthGuard';
 import LoadingScreen from './components/LoadingScreen';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage'; // Ensure this is imported
 import HostDashboard from './pages/HostDashboard'
 import StudentDashboard from './pages/StudentDashboard';
 import AudioCapture from './pages/AudioCapture';
@@ -43,73 +44,73 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <LoadingProvider>
-          <NotificationProvider>
+          <NotificationProvider> 
             <Router>
               <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
                 <LoadingScreen />
                 <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/contactUs" element={<ContactUs />} />
-                
-                {/* Host Dashboard Routes */}
-                <Route path="/host" element={
-                    <HostDashboard />
-                } />
-                <Route path="/host/audio" element={
-                    <AudioCapture />
-                } />
-                <Route path="/host/ai-questions" element={
-                    <AIQuestionFeed />
-                } />
-                <Route path="/host/create-manual-poll" element={
-                    <CreateManualPoll />
-                } />
-                <Route path="/host/create-poll" element={
-                    <CreatePollPage />
-                } />
-                <Route path="/host/participants" element={
-                    <Participants />
-                } />
-                <Route path="/host/leaderboard" element={
-                    <Leaderboard />
-                } />
-                <Route path="/host/reports" element={
-                    <Reports />
-                } />
-                <Route path="/host/settings" element={
-                  <AccessibilityProvider>
-                    <Settings />
-                    </AccessibilityProvider>
-                } />
-                <Route path="/guest" element={
-                  <GuestPage />
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  {/* CRITICAL: Ensure this route is exactly as shown, with :token */}
+                  <Route path="/resetpassword/:token" element={<ResetPasswordPage />} /> 
+                  <Route path="/contactUs" element={<ContactUs />} />
+                  
+                  {/* Host Dashboard Routes - Protected */}
+                  <Route path="/host" element={
+                      <AuthGuard><HostDashboard /></AuthGuard>
                   } />
+                  <Route path="/host/audio" element={
+                      <AuthGuard><AudioCapture /></AuthGuard>
+                  } />
+                  <Route path="/host/ai-questions" element={
+                      <AuthGuard><AIQuestionFeed /></AuthGuard>
+                  } />
+                  <Route path="/host/create-manual-poll" element={
+                      <AuthGuard><CreateManualPoll /></AuthGuard>
+                  } />
+                  <Route path="/host/create-poll" element={
+                      <AuthGuard><CreatePollPage /></AuthGuard>
+                  } />
+                  <Route path="/host/participants" element={
+                      <AuthGuard><Participants /></AuthGuard>
+                  } />
+                  <Route path="/host/leaderboard" element={
+                      <AuthGuard><Leaderboard /></AuthGuard>
+                  } />
+                  <Route path="/host/reports" element={
+                      <AuthGuard><Reports /></AuthGuard>
+                  } />
+                  <Route path="/host/settings" element={
+                    <AuthGuard><AccessibilityProvider><Settings /></AccessibilityProvider></AuthGuard>
+                  } />
+                  <Route path="/guest" element={
+                    <GuestPage />
+                    } />
 
-      {/* Student Dashboard Routes */}
-      <Route path="/student/*" element={<StudentDashboard />}>
-        <Route index element={<DashboardHomePage />} />
-        <Route path="join-poll" element={<JoinPollPage />} />
-        <Route path="history" element={<PollHistoryPage />} />
-        <Route path="poll-questions" element={<PollQuestionsPage roomCode="" />} />
-        <Route path="profile" element={<StudentProfilePage />} />
-        <Route path="achievements" element={<AchievementPage />} />
-        <Route path="notifications" element={<NotificationPage />} />
-        <Route path="settings" element={<AccessibilityProvider><SettingsStudent /></AccessibilityProvider>} />
-        <Route path="leaderboard" element={<StudentLeaderboard />} />
-        <Route path="change-password" element={<ChangePassword />} />
-        <Route path="active-sessions" element={<ActiveSessions />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-            </div>
-          </Router>
-        </NotificationProvider>
-      </LoadingProvider>
-    </AuthProvider>
-  </ThemeProvider>
+                  {/* Student Dashboard Routes - Protected */}
+                  <Route path="/student/*" element={<AuthGuard><StudentDashboard /></AuthGuard>}>
+                    <Route index element={<DashboardHomePage />} />
+                    <Route path="join-poll" element={<JoinPollPage />} />
+                    <Route path="history" element={<PollHistoryPage />} />
+                    <Route path="poll-questions" element={<PollQuestionsPage roomCode="" />} />
+                    <Route path="profile" element={<StudentProfilePage />} />
+                    <Route path="achievements" element={<AchievementPage />} />
+                    <Route path="notifications" element={<NotificationPage />} />
+                    <Route path="settings" element={<AccessibilityProvider><SettingsStudent /></AccessibilityProvider>} />
+                    <Route path="leaderboard" element={<StudentLeaderboard />} />
+                    <Route path="change-password" element={<ChangePassword />} />
+                    <Route path="active-sessions" element={<ActiveSessions />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </Router>
+          </NotificationProvider>
+        </LoadingProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react'
+// apps/frontend/src/contexts/NotificationContext.tsx
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 
 interface Notification {
   id: string
-  type: "achievement" | "poll" | "system" | "social" | "reminder"
-  title: string
+  type: "achievement" | "poll" | "system" | "social" | "reminder" | "toast" // Added 'toast' type for general notifications
+  title?: string // Made title optional for simple toast notifications
   message: string
   timestamp: Date
   isRead: boolean
-  priority: "low" | "medium" | "high"
+  priority?: "low" | "medium" | "high" // Made priority optional
   actionUrl?: string
   metadata?: {
     pollId?: string
@@ -24,7 +25,8 @@ interface NotificationContextType {
   setNotifications: (notifications: Notification[]) => void
   markAsRead: (id: string) => void
   markAllAsRead: () => void
-  deleteNotification: (id: string) => void
+  deleteNotification: (id: string) => void;
+  showNotification: (message: string, type: 'success' | 'error' | 'info') => void; // This method is correctly defined here
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -125,6 +127,28 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     })
   }
 
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
+    const id = Math.random().toString(36).substring(2, 9); // Generate a unique ID
+    setNotifications(prev => [
+      ...prev,
+      {
+        id,
+        message,
+        type: 'toast', // Use 'toast' type for these general messages
+        timestamp: new Date(),
+        isRead: false, // Toast notifications are typically not "read" in the same way
+        priority: type === 'error' ? 'high' : 'medium', // Set priority based on type
+        title: type.charAt(0).toUpperCase() + type.slice(1), // Title like "Success", "Error", "Info"
+      }
+    ]);
+
+    // Auto-hide after a few seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(notif => notif.id !== id));
+    }, 5000); // Notification disappears after 5 seconds
+  }, []);
+
+
   return (
     <NotificationContext.Provider value={{ 
       unreadCount, 
@@ -134,9 +158,51 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setNotifications,
       markAsRead,
       markAllAsRead,
-      deleteNotification
+      deleteNotification,
+      showNotification // Exporting the new method
     }}>
       {children}
+      {/* Optional: Render a simple toast notification display here */}
+      <div style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column-reverse', // To stack new toasts on top
+        gap: '10px'
+      }}>
+        {notifications.filter(n => n.type === 'toast').map(notif => (
+          <div
+            key={notif.id}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '8px',
+              color: 'white',
+              backgroundColor:
+                notif.type === 'toast' && notif.priority === 'high' ? '#f44336' : // Error red
+                notif.type === 'toast' && notif.priority === 'medium' && notif.title === 'Success' ? '#4CAF50' : // Success green
+                notif.type === 'toast' && notif.priority === 'medium' && notif.title === 'Info' ? '#2196F3' : // Info blue
+                '#333', // Default dark
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              minWidth: '250px',
+              maxWidth: '350px',
+              fontSize: '0.95em',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}
+          >
+            {notif.title && <span style={{ marginRight: '5px' }}>
+              {notif.title === 'Success' && '✅'}
+              {notif.title === 'Error' && '❌'}
+              {notif.title === 'Info' && 'ℹ️'}
+            </span>}
+            {notif.message}
+          </div>
+        ))}
+      </div>
     </NotificationContext.Provider>
   )
 }

@@ -1,28 +1,52 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { Mail, Brain, Loader, ArrowLeft, CheckCircle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { Mail, Brain, Loader, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react'; // Import AlertCircle for error icon
+import { useNotificationContext } from '../contexts/NotificationContext'; // Import useNotificationContext
 import GlassCard from '../components/GlassCard';
+import axios from 'axios';
 
 interface ForgotPasswordForm {
   email: string;
 }
 
+const API_BASE_URL = 'http://localhost:3000/api/auth'; // Your backend API base URL
+
 const ForgotPasswordPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { forgotPassword } = useAuth();
-  const { register, handleSubmit, formState: { errors } } = useForm<ForgotPasswordForm>();
+  const { showNotification } = useNotificationContext();
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<ForgotPasswordForm>();
 
   const onSubmit = async (data: ForgotPasswordForm) => {
     setIsLoading(true);
+    setError('email', { type: 'manual', message: '' });
+    setError('root.serverError', { type: 'manual', message: '' });
+
     try {
-      await forgotPassword(data.email);
+      const response = await axios.post(`${API_BASE_URL}/forgotpassword`, {
+        email: data.email,
+      });
+      
       setIsSuccess(true);
-    } catch (error) {
-      console.error('Password reset failed:', error);
+      showNotification(response.data.message || 'Password reset link sent successfully!', 'success');
+
+    } catch (error: any) {
+      console.error('Password reset failed:', error.response?.data || error.message);
+      const errorMessage = error.response?.data?.message || 'Failed to send reset link. Please try again.';
+
+      // MODIFIED: Handle 404 specifically for "No account found"
+      if (error.response?.status === 404 && errorMessage.includes('No account found')) {
+        setError('email', { type: 'manual', message: errorMessage });
+      } else if (errorMessage.includes('Please provide an email address')) {
+        setError('email', { type: 'manual', message: 'Email is required.' });
+      } else {
+        // For other generic errors, use the notification context and root error
+        showNotification(errorMessage, 'error');
+        setError('root.serverError', { type: 'manual', message: errorMessage });
+      }
+      setIsSuccess(false); // Ensure success state is false on error
     } finally {
       setIsLoading(false);
     }
@@ -107,12 +131,32 @@ const ForgotPasswordPage = () => {
                     })}
                     className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter your email"
+                    autoComplete="email" // Added autoComplete
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-sm text-red-400 flex items-center" // Added flex items-center for icon alignment
+                  >
+                    <AlertCircle className="w-4 h-4 mr-1" /> {/* Error icon */}
+                    {errors.email.message}
+                  </motion.p>
                 )}
               </div>
+
+              {/* General server error message (if any) */}
+              {errors.root?.serverError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-1 text-sm text-red-400 text-center flex items-center justify-center" // Added flex for centering
+                >
+                  <AlertCircle className="w-4 h-4 mr-1" /> {/* Error icon */}
+                  {errors.root.serverError.message}
+                </motion.p>
+              )}
 
               {/* Submit Button */}
               <motion.button

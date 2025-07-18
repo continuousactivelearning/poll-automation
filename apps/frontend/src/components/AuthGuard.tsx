@@ -1,4 +1,6 @@
-import React, { ReactNode } from 'react';
+//poll-automation\apps\frontend\src\components\AIControlPanel.tsx
+import React from 'react';
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
