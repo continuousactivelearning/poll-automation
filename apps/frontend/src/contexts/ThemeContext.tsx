@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import type { ReactNode } from 'react'; // FIXED: Changed to type-only import for ReactNode
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -13,17 +14,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [accentColor, setAccentColor] = useState<'primary' | 'secondary' | 'accent'>('primary');
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
+  const toggleDarkMode = useCallback(() => {
+    setIsDarkMode(prevMode => !prevMode);
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    isDarkMode,
+    toggleDarkMode,
+    accentColor,
+    setAccentColor,
+  }), [isDarkMode, toggleDarkMode, accentColor, setAccentColor]);
 
   return (
-    <ThemeContext.Provider value={{
-      isDarkMode,
-      toggleDarkMode,
-      accentColor,
-      setAccentColor
-    }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

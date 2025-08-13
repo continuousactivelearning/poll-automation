@@ -117,7 +117,8 @@ UserSchema.methods.getSignedJwtToken = function(this: IUser): string {
   }
 
   // Debugging log: Confirm jwtSecret type and value
-  console.log(`Debug: JWT Secret type: ${typeof jwtSecret}, value length: ${jwtSecret.length}`);
+  /*console.log(`Debug: JWT Secret type: ${typeof jwtSecret}, value length: ${jwtSecret.length}`);*/
+  console.log(`${this.email} Logged-in successfully`);;
 
   // FIXED: Explicitly define expiresInValue as string to match ms.StringValue type
   const expiresInValue: string = process.env.JWT_EXPIRE || '1h';
@@ -127,7 +128,6 @@ UserSchema.methods.getSignedJwtToken = function(this: IUser): string {
     expiresIn: expiresInValue, // Pass the explicitly typed string value
   } as SignOptions); // Cast the options object to SignOptions
 };
-
 
 // Use HydratedDocument to correctly type the model instance
 const User = model<IUser>('User', UserSchema);

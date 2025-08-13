@@ -3,13 +3,13 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LoadingProvider } from './contexts/LoadingContext';
-import { NotificationProvider } from './contexts/NotificationContext'; 
+import { NotificationProvider } from './contexts/NotificationContext';
 import AuthGuard from './components/AuthGuard';
 import LoadingScreen from './components/LoadingScreen';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage'; // Ensure this is imported
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import HostDashboard from './pages/HostDashboard'
 import StudentDashboard from './pages/StudentDashboard';
 import AudioCapture from './pages/AudioCapture';
@@ -29,7 +29,8 @@ import NotFound from './pages/NotFound';
 // Student dashboard section imports
 import JoinPollPage from './components/student/JoinPollPage';
 import PollHistoryPage from './components/student/PollHistoryPage';
-import PollQuestionsPage from './components/student/PollQuestionsPage';
+import PollQuestionsPage from './pages/PollQuestionsPage'; // Correct import
+
 import StudentProfilePage from './components/student/StudentProfilePage';
 import AchievementPage from './components/student/AchievementPage';
 import NotificationPage from './components/student/NotificationPage';
@@ -44,7 +45,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <LoadingProvider>
-          <NotificationProvider> 
+          <NotificationProvider>
             <Router>
               <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
                 <LoadingScreen />
@@ -53,10 +54,9 @@ function App() {
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  {/* CRITICAL: Ensure this route is exactly as shown, with :token */}
-                  <Route path="/resetpassword/:token" element={<ResetPasswordPage />} /> 
+                  <Route path="/resetpassword/:token" element={<ResetPasswordPage />} />
                   <Route path="/contactUs" element={<ContactUs />} />
-                  
+
                   {/* Host Dashboard Routes - Protected */}
                   <Route path="/host" element={
                       <AuthGuard><HostDashboard /></AuthGuard>
@@ -94,7 +94,8 @@ function App() {
                     <Route index element={<DashboardHomePage />} />
                     <Route path="join-poll" element={<JoinPollPage />} />
                     <Route path="history" element={<PollHistoryPage />} />
-                    <Route path="poll-questions" element={<PollQuestionsPage roomCode="" />} />
+                    {/* FIXED: Removed roomCode prop as PollQuestionsPage now reads it from URLSearchParams */}
+                    <Route path="poll-questions" element={<PollQuestionsPage />} />
                     <Route path="profile" element={<StudentProfilePage />} />
                     <Route path="achievements" element={<AchievementPage />} />
                     <Route path="notifications" element={<NotificationPage />} />

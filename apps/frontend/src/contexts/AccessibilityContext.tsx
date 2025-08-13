@@ -1,6 +1,7 @@
 // AccessibilityContext.tsx
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react"; // FIXED: Removed unused useEffect
+import type { ReactNode } from "react"; // FIXED: Changed to type-only import for ReactNode
 
 type AccessibilitySettings = {
   highContrast: boolean;
@@ -20,20 +21,25 @@ const AccessibilityContext = createContext<{
   updateSetting: () => {},
 });
 
-export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AccessibilityProvider: React.FC<{ children: ReactNode }> = ({ children }) => { // FIXED: Changed to ReactNode
   const [settings, setSettings] = useState<AccessibilitySettings>(() => {
     const saved = localStorage.getItem("accessibilitySettings");
     return saved ? JSON.parse(saved) : defaultSettings;
   });
 
-  const updateSetting = <K extends keyof AccessibilitySettings>(key: K, value: AccessibilitySettings[K]) => {
+  const updateSetting = useCallback(<K extends keyof AccessibilitySettings>(key: K, value: AccessibilitySettings[K]) => {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
     localStorage.setItem("accessibilitySettings", JSON.stringify(updated));
-  };
+  }, [settings]);
+
+  const contextValue = useMemo(() => ({
+    settings,
+    updateSetting,
+  }), [settings, updateSetting]);
 
   return (
-    <AccessibilityContext.Provider value={{ settings, updateSetting }}>
+    <AccessibilityContext.Provider value={contextValue}>
       {children}
     </AccessibilityContext.Provider>
   );

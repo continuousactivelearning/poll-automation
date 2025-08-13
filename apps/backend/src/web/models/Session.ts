@@ -1,18 +1,18 @@
 // apps/backend/src/web/models/Session.ts
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document, Types, model } from 'mongoose';
 
-// Interface for allowed participants from CSV
-interface IAllowedParticipant {
+// Interface for invited participants (from CSV)
+export interface IInvitedParticipant {
   email: string;
   name?: string; // Optional name from CSV
 }
 
 // Interface for joined participants (students who have entered the room)
-interface IJoinedParticipant {
+export interface IJoinedParticipant {
   userId: Types.ObjectId; // Reference to the User (Student) who joined
   email: string; // Store student email for easier lookup
   fullName: string; // Store student full name
-  joinedAt: Date;
+  joinedAt: Date; // Required joinedAt field
 }
 
 // Define the interface for a Session document
@@ -25,13 +25,15 @@ export interface ISession extends Document {
   createdAt: Date;
   endedAt: Date; // Calculated based on initial duration + extensions
   isActive: boolean; // True if the session is currently active/running
-  allowedParticipants: IAllowedParticipant[]; // Emails from uploaded CSV
-  joinedParticipants: IJoinedParticipant[]; // NEW: List of students currently in the session
-  approvedPollsCount: number; // Count of polls approved within this session
+  invitedParticipants: IInvitedParticipant[]; // Updated type to array of objects
+  joinedParticipants: IJoinedParticipant[]; // List of students currently in the session
+  blockedParticipants: Types.ObjectId[]; // List of user IDs blocked from this session
+  approvedPollsCount: number;
+  currentPollId?: Types.ObjectId; // NEW: Reference to the currently active ManualPollQuestion
 }
 
 // Define the Session Schema
-const SessionSchema: Schema = new Schema({
+const SessionSchema = new Schema<ISession>({
   host: {
     type: Schema.Types.ObjectId,
     ref: 'User', // References the User model
@@ -71,7 +73,7 @@ const SessionSchema: Schema = new Schema({
     type: Boolean,
     default: true, // A newly created session is active
   },
-  allowedParticipants: [
+  invitedParticipants: [ // Updated to array of objects
     {
       email: {
         type: String,
@@ -87,7 +89,7 @@ const SessionSchema: Schema = new Schema({
       },
     },
   ],
-  joinedParticipants: [ // NEW: Array to store joined participants
+  joinedParticipants: [
     {
       userId: {
         type: Schema.Types.ObjectId,
@@ -104,22 +106,33 @@ const SessionSchema: Schema = new Schema({
       },
       joinedAt: {
         type: Date,
-        default: Date.now,
+        default: Date.now, // Default to current time when a participant joins
       },
+    },
+  ],
+  blockedParticipants: [ // Array to store user IDs of blocked participants
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
   ],
   approvedPollsCount: {
     type: Number,
     default: 0,
   },
+  currentPollId: { // NEW: Reference to the currently active ManualPollQuestion
+    type: Schema.Types.ObjectId,
+    ref: 'ManualPollQuestion', // IMPORTANT: Updated reference to the new model name
+    default: null, // No poll active by default
+  },
 }, {
-  timestamps: true, // Adds createdAt and updatedAt fields automatically (for the document itself)
+  timestamps: true, // Adds createdAt and updatedAt timestamps
 });
 
 // Explicitly define the unique index for roomCode here
-SessionSchema.index({ roomCode: 1 }, { unique: true }); // This is the preferred way
+SessionSchema.index({ roomCode: 1 }, { unique: true });
 
-// Export the Session Model
-const Session = mongoose.model<ISession>('Session', SessionSchema);
+// Create and export the Session model
+const Session = model<ISession>('Session', SessionSchema);
 
 export default Session;

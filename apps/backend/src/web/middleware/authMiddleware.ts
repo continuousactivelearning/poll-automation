@@ -33,19 +33,19 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
   let token: string | undefined; // Explicitly type token
 
   // Debug: Log incoming Authorization Header
-  console.log('Debug: Incoming Authorization Header:', req.headers.authorization);
+  /* console.log('Debug: Incoming Authorization Header:', req.headers.authorization);*/
 
   // Check if Authorization header exists and starts with 'Bearer'
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       // Get token from header
       token = req.headers.authorization.split(' ')[1];
-      console.log('Debug: Extracted Token:', token); // Debug: Log extracted token
+     /* console.log('Debug: Extracted Token:', token); // Debug: Log extracted token */
 
       // Verify token
       // Cast jwtSecret to Secret to satisfy TypeScript
       const decoded = jwt.verify(token, jwtSecret as Secret) as { id: string };
-      console.log('Debug: Decoded Token Payload:', decoded); // Debug: Log decoded payload
+     /* console.log('Debug: Decoded Token Payload:', decoded); // Debug: Log decoded payload */
 
       // Find user by ID and attach to request object
       const user = await User.findById(decoded.id).select('-password');
@@ -56,7 +56,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
       }
 
       // Attach user information to the request object
-      req.user = {
+       req.user = {
         id: user._id.toString(),
         fullName: user.fullName,
         email: user.email,

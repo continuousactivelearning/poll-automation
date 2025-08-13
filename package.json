@@ -23,6 +23,8 @@
     "turbo": "^2.5.4"
   },
   "dependencies": {
+    "lucide": "^0.525.0",
+    "lucide-react": "^0.525.0",
     "mongoose": "^8.16.0"
   }
 }

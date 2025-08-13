@@ -1,14 +1,14 @@
 // apps/frontend/src/contexts/NotificationContext.tsx
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react' // Added useMemo
 
 interface Notification {
   id: string
-  type: "achievement" | "poll" | "system" | "social" | "reminder" | "toast" // Added 'toast' type for general notifications
-  title?: string // Made title optional for simple toast notifications
+  type: "achievement" | "poll" | "system" | "social" | "reminder" | "toast"
+  title?: string
   message: string
   timestamp: Date
   isRead: boolean
-  priority?: "low" | "medium" | "high" // Made priority optional
+  priority?: "low" | "medium" | "high"
   actionUrl?: string
   metadata?: {
     pollId?: string
@@ -26,12 +26,11 @@ interface NotificationContextType {
   markAsRead: (id: string) => void
   markAllAsRead: () => void
   deleteNotification: (id: string) => void;
-  showNotification: (message: string, type: 'success' | 'error' | 'info') => void; // This method is correctly defined here
+  showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
-// Mock notifications data (in a real app, this would come from an API)
 const initialNotifications: Notification[] = [
   {
     id: "1",
@@ -97,79 +96,88 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
   const [unreadCount, setUnreadCount] = useState(initialNotifications.filter(n => !n.isRead).length)
 
-  const updateUnreadCount = (change: number) => {
+  const updateUnreadCount = useCallback((change: number) => { // Memoize updateUnreadCount
     setUnreadCount(prev => Math.max(0, prev + change))
-  }
+  }, []);
 
-  const markAsRead = (id: string) => {
+  const markAsRead = useCallback((id: string) => { // Memoize markAsRead
     setNotifications(prev => {
       const updated = prev.map(notif => notif.id === id ? { ...notif, isRead: true } : notif)
       const newUnreadCount = updated.filter(n => !n.isRead).length
       setUnreadCount(newUnreadCount)
       return updated
     })
-  }
+  }, []);
 
-  const markAllAsRead = () => {
+  const markAllAsRead = useCallback(() => { // Memoize markAllAsRead
     setNotifications(prev => {
       const updated = prev.map(notif => ({ ...notif, isRead: true }))
       setUnreadCount(0)
       return updated
     })
-  }
+  }, []);
 
-  const deleteNotification = (id: string) => {
+  const deleteNotification = useCallback((id: string) => { // Memoize deleteNotification
     setNotifications(prev => {
       const updated = prev.filter(notif => notif.id !== id)
       const newUnreadCount = updated.filter(n => !n.isRead).length
       setUnreadCount(newUnreadCount)
       return updated
     })
-  }
+  }, []);
 
   const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
-    const id = Math.random().toString(36).substring(2, 9); // Generate a unique ID
+    const id = Math.random().toString(36).substring(2, 9);
     setNotifications(prev => [
       ...prev,
       {
         id,
         message,
-        type: 'toast', // Use 'toast' type for these general messages
+        type: 'toast',
         timestamp: new Date(),
-        isRead: false, // Toast notifications are typically not "read" in the same way
-        priority: type === 'error' ? 'high' : 'medium', // Set priority based on type
-        title: type.charAt(0).toUpperCase() + type.slice(1), // Title like "Success", "Error", "Info"
+        isRead: false,
+        priority: type === 'error' ? 'high' : 'medium',
+        title: type.charAt(0).toUpperCase() + type.slice(1),
       }
     ]);
 
-    // Auto-hide after a few seconds
     setTimeout(() => {
       setNotifications(prev => prev.filter(notif => notif.id !== id));
-    }, 5000); // Notification disappears after 5 seconds
-  }, []);
+    }, 5000);
+  }, []); // Dependencies for showNotification: none needed as it only uses setNotifications (which is stable)
 
+
+  // NEW: Memoize the context value to prevent unnecessary re-renders of consumers
+  const contextValue = useMemo(() => ({
+    unreadCount,
+    setUnreadCount, // setUnreadCount from useState is stable
+    updateUnreadCount, // Memoized
+    notifications,
+    setNotifications, // setNotifications from useState is stable
+    markAsRead, // Memoized
+    markAllAsRead, // Memoized
+    deleteNotification, // Memoized
+    showNotification // Memoized
+  }), [
+    unreadCount,
+    updateUnreadCount,
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    showNotification
+  ]);
 
   return (
-    <NotificationContext.Provider value={{ 
-      unreadCount, 
-      setUnreadCount, 
-      updateUnreadCount,
-      notifications,
-      setNotifications,
-      markAsRead,
-      markAllAsRead,
-      deleteNotification,
-      showNotification // Exporting the new method
-    }}>
+    <NotificationContext.Provider value={contextValue}>
       {children}
-      {/* Optional: Render a simple toast notification display here */}
       <div style={{
         position: 'fixed',
         bottom: '20px',
         right: '20px',
         zIndex: 1000,
         display: 'flex',
-        flexDirection: 'column-reverse', // To stack new toasts on top
+        flexDirection: 'column-reverse',
         gap: '10px'
       }}>
         {notifications.filter(n => n.type === 'toast').map(notif => (
@@ -180,10 +188,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               borderRadius: '8px',
               color: 'white',
               backgroundColor:
-                notif.type === 'toast' && notif.priority === 'high' ? '#f44336' : // Error red
-                notif.type === 'toast' && notif.priority === 'medium' && notif.title === 'Success' ? '#4CAF50' : // Success green
-                notif.type === 'toast' && notif.priority === 'medium' && notif.title === 'Info' ? '#2196F3' : // Info blue
-                '#333', // Default dark
+                notif.type === 'toast' && notif.priority === 'high' ? '#f44336' :
+                notif.type === 'toast' && notif.priority === 'medium' && notif.title === 'Success' ? '#4CAF50' :
+                notif.type === 'toast' && notif.priority === 'medium' && notif.title === 'Info' ? '#2196F3' :
+                '#333',
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
               minWidth: '250px',
               maxWidth: '350px',

@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Eye, EyeOff, Brain, Loader } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader, Brain } from 'lucide-react';
+/* import Lock from 'lucide-react/lib/icons/lock';
+import Eye from 'lucide-react/icons/eye';
+import EyeOff from 'lucide-react/icons/eye-off';
+import Loader from 'lucide-react/icons/loader';
+import Brain from 'lucide-react/lib/icons/brain'; */
 import { useAuth } from '../contexts/AuthContext';
 import GlassCard from '../components/GlassCard';
 // Removed: import axios from 'axios'; // No longer directly used here
