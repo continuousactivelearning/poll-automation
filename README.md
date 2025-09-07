@@ -132,7 +132,7 @@ pip install -r requirements.txt
 GEMINI_API_KEY=<your key>
 ```
 
-### 🧠 Setting up Local LLM (Ollama)
+### 🧠 Setting up Local LLM (Ollama) (Optional)
 
 1. **Download and Install Ollama:**
 
@@ -158,7 +158,7 @@ ollama pull mxbai-embed-large
 ollama list
 ```
 
-### 🔧 .env Configuration
+### 🔧 .env Configuration (already in the code)
 
 #### `apps/backend/.env`
 
@@ -206,7 +206,7 @@ SILENCE_THRESHOLD=92000
 
 Available Whisper model sizes: `tiny`, `base`, `small`, `medium`, `large-v1`, `large-v2`, `large-v3`.
 
-#### `services/pollgen-llm/.env`
+#### `services/pollgen-llm/.env` (already in the code just some modification needed adding api key and user home path)
 
 ```env
 BACKEND_SETTINGS_API=http://localhost:5001/settings
