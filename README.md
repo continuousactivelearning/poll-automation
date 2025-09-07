@@ -233,7 +233,7 @@ pnpm install
 3. **Start all development servers:**
 
 ```bash
-pnpm dev
+./dev.bat
 ```
 
 This starts:
