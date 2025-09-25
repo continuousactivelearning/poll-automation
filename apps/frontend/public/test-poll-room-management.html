@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Poll Room Management Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #1a1a1a;
+        color: white;
+      }
+
+      .container {
+        background-color: #2a2a2a;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+
+      .error {
+        background-color: #f44336;
+      }
+
+      .success {
+        background-color: #4caf50;
+      }
+
+      .output {
+        background-color: #333;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 10px;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px;
+        background-color: #333;
+        border: 1px solid #555;
+        border-radius: 4px;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Poll Room Management Test</h1>
+
+    <div class="container">
+      <h2>Create Poll</h2>
+      <div class="form-group">
+        <label for="roomTitle">Room Title:</label>
+        <input type="text" id="roomTitle" value="Test Room" />
+      </div>
+
+      <div class="form-group">
+        <label for="roomCode">Room Code:</label>
+        <input type="text" id="roomCode" value="TEST001" />
+      </div>
+
+      <div class="form-group">
+        <label for="userId">User ID:</label>
+        <input type="text" id="userId" value="user123" />
+      </div>
+
+      <button onclick="createPoll()">Create Poll</button>
+      <button onclick="getAllPolls()">Get All Polls</button>
+      <button onclick="deletePollByStoredCode()">
+        Delete Poll (from localStorage)
+      </button>
+      <button onclick="clearLocalStorage()">Clear localStorage</button>
+      <button onclick="showLocalStorage()">Show localStorage</button>
+
+      <div id="output" class="output"></div>
+    </div>
+
+    <div class="container">
+      <h2>Current Polls</h2>
+      <div id="pollsDisplay" class="output"></div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:3000/api/room-code";
+      const outputDiv = document.getElementById("output");
+      const pollsDiv = document.getElementById("pollsDisplay");
+
+      function log(message, type = "info") {
+        const timestamp = new Date().toLocaleTimeString();
+        const colorClass =
+          type === "error" ? "error" : type === "success" ? "success" : "";
+        outputDiv.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
+        outputDiv.scrollTop = outputDiv.scrollHeight;
+      }
+
+      async function createPoll() {
+        try {
+          const data = {
+            room_title: document.getElementById("roomTitle").value,
+            room_code: document.getElementById("roomCode").value,
+            user_id: document.getElementById("userId").value,
+          };
+
+          log(`Creating poll: ${JSON.stringify(data)}`);
+
+          const response = await fetch(`${API_URL}/polls`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            log(
+              `✅ Poll created successfully: ${JSON.stringify(result, null, 2)}`,
+              "success"
+            );
+
+            // Simulate the frontend localStorage storage
+            localStorage.setItem("roomId", result._id);
+            localStorage.setItem("roomCode", result.room_code);
+            log(
+              `✅ Stored in localStorage: roomId=${result._id}, roomCode=${result.room_code}`,
+              "success"
+            );
+
+            getAllPolls(); // Refresh the polls display
+          } else {
+            log(`❌ Error creating poll: ${JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          log(`❌ Network error: ${error.message}`, "error");
+        }
+      }
+
+      async function getAllPolls() {
+        try {
+          log("Fetching all polls...");
+
+          const response = await fetch(`${API_URL}/polls`);
+          const result = await response.json();
+
+          if (response.ok) {
+            log(`✅ Retrieved ${result.length} polls`, "success");
+            pollsDiv.innerHTML = JSON.stringify(result, null, 2);
+          } else {
+            log(`❌ Error fetching polls: ${JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          log(`❌ Network error: ${error.message}`, "error");
+        }
+      }
+
+      async function deletePollByStoredCode() {
+        try {
+          const storedRoomCode = localStorage.getItem("roomCode");
+
+          if (!storedRoomCode) {
+            log("❌ No room code found in localStorage", "error");
+            return;
+          }
+
+          log(`Deleting poll with room code: ${storedRoomCode}`);
+
+          const response = await fetch(`${API_URL}/polls/${storedRoomCode}`, {
+            method: "DELETE",
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            log(
+              `✅ Poll deleted successfully: ${JSON.stringify(result, null, 2)}`,
+              "success"
+            );
+
+            // Remove from localStorage
+            localStorage.removeItem("roomId");
+            localStorage.removeItem("roomCode");
+            log("✅ Removed from localStorage", "success");
+
+            getAllPolls(); // Refresh the polls display
+          } else {
+            log(`❌ Error deleting poll: ${JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          log(`❌ Network error: ${error.message}`, "error");
+        }
+      }
+
+      function clearLocalStorage() {
+        localStorage.removeItem("roomId");
+        localStorage.removeItem("roomCode");
+        log("✅ localStorage cleared", "success");
+      }
+
+      function showLocalStorage() {
+        const roomId = localStorage.getItem("roomId");
+        const roomCode = localStorage.getItem("roomCode");
+
+        log(`localStorage contents:`);
+        log(`  roomId: ${roomId}`);
+        log(`  roomCode: ${roomCode}`);
+      }
+
+      // Load initial polls
+      getAllPolls();
+
+      // Show current localStorage on page load
+      showLocalStorage();
+    </script>
+  </body>
+</html>

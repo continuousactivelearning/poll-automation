@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Backend Questions Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #1a1a2e;
+        color: white;
+      }
+      .question {
+        background: #16213e;
+        border: 1px solid #0f3460;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      .options {
+        margin-top: 10px;
+      }
+      .option {
+        background: #0f3460;
+        padding: 8px;
+        margin: 5px 0;
+        border-radius: 4px;
+      }
+      .correct {
+        background: #28a745;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 10px 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .success {
+        background: #28a745;
+      }
+      .error {
+        background: #dc3545;
+      }
+      .info {
+        background: #17a2b8;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Backend Questions Test</h1>
+    <div id="status">Loading...</div>
+    <div id="questions"></div>
+
+    <script>
+      const statusDiv = document.getElementById("status");
+      const questionsDiv = document.getElementById("questions");
+
+      function showStatus(message, type = "info") {
+        statusDiv.className = `status ${type}`;
+        statusDiv.textContent = message;
+      }
+
+      function transformBackendQuestions(backendQuestions) {
+        console.log(
+          "🔄 Transforming backend questions:",
+          backendQuestions.length
+        );
+
+        const activeQuestions = backendQuestions.filter(
+          (q) => q.is_active && q.is_approved
+        );
+        console.log("✅ Active & approved questions:", activeQuestions.length);
+
+        return activeQuestions.map((backendQ) => {
+          // Find the correct answer index
+          const correctAnswerIndex = backendQ.options.findIndex(
+            (option) => option === backendQ.correct_answer
+          );
+
+          // Map difficulty to frontend format
+          const difficulty =
+            backendQ.difficulty.charAt(0).toUpperCase() +
+            backendQ.difficulty.slice(1);
+
+          // Calculate points based on difficulty
+          const difficultyPoints = {
+            Easy: 100,
+            Medium: 150,
+            Hard: 200,
+          };
+
+          // Calculate time limit based on difficulty
+          const difficultyTimeLimit = {
+            Easy: 30,
+            Medium: 25,
+            Hard: 35,
+          };
+
+          const transformedQuestion = {
+            id: backendQ._id,
+            question: backendQ.question,
+            options: backendQ.options,
+            timeLimit: difficultyTimeLimit[difficulty],
+            points: difficultyPoints[difficulty],
+            difficulty: difficulty,
+            category: backendQ.concept || "General",
+            correctAnswer: correctAnswerIndex >= 0 ? correctAnswerIndex : 0,
+          };
+
+          console.log("📝 Transformed question:", {
+            id: transformedQuestion.id,
+            question: transformedQuestion.question.substring(0, 50) + "...",
+            correctAnswer: transformedQuestion.correctAnswer,
+            difficulty: transformedQuestion.difficulty,
+          });
+
+          return transformedQuestion;
+        });
+      }
+
+      function displayQuestions(questions) {
+        questionsDiv.innerHTML = "";
+
+        questions.forEach((question, index) => {
+          const questionDiv = document.createElement("div");
+          questionDiv.className = "question";
+
+          const optionsHtml = question.options
+            .map((option, optionIndex) => {
+              const isCorrect = optionIndex === question.correctAnswer;
+              return `<div class="option ${isCorrect ? "correct" : ""}">${option} ${isCorrect ? "✓" : ""}</div>`;
+            })
+            .join("");
+
+          questionDiv.innerHTML = `
+                    <h3>Question ${index + 1} (${question.difficulty} - ${question.points} points)</h3>
+                    <p><strong>${question.question}</strong></p>
+                    <div class="options">${optionsHtml}</div>
+                    <p><small>Category: ${question.category} | Time: ${question.timeLimit}s</small></p>
+                `;
+
+          questionsDiv.appendChild(questionDiv);
+        });
+      }
+
+      async function fetchQuestions() {
+        try {
+          showStatus("Fetching questions from backend...", "info");
+
+          const response = await fetch("http://localhost:3000/api/questions");
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const backendQuestions = await response.json();
+          showStatus(
+            `Fetched ${backendQuestions.length} questions from backend`,
+            "success"
+          );
+
+          console.log("Raw backend questions:", backendQuestions);
+
+          const transformedQuestions =
+            transformBackendQuestions(backendQuestions);
+          console.log("Transformed questions:", transformedQuestions);
+
+          showStatus(
+            `Showing ${transformedQuestions.length} active & approved questions`,
+            "success"
+          );
+          displayQuestions(transformedQuestions);
+        } catch (error) {
+          console.error("Error fetching questions:", error);
+          showStatus(`Error: ${error.message}`, "error");
+        }
+      }
+
+      // Fetch questions on page load
+      fetchQuestions();
+    </script>
+  </body>
+</html>

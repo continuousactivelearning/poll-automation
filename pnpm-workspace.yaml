@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - services/*
+  - shared/*
+
+onlyBuiltDependencies:
+  - core-js
+  - esbuild

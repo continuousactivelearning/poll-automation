@@ -1,0 +1,64 @@
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #eef2ff;
+  --text-color: #333;
+  --bg-color: #f9fafb;
+  --input-border: #d1d5db;
+}
+
+.host-settings-container {
+  max-width: 520px;
+  margin: 4rem auto;
+  padding: 2rem 2.5rem;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease-in-out;
+}
+
+.host-settings-container h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.host-settings-container input,
+.host-settings-container select {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.2rem;
+  font-size: 1rem;
+  color: var(--text-color);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background-color: var(--bg-color);
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.host-settings-container input:focus,
+.host-settings-container select:focus {
+  border-color: var(--primary-color);
+  background-color: #fff;
+}
+
+.host-settings-container button {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.host-settings-container button:hover {
+  background-color: #4338ca;
+}

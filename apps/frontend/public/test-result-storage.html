@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Result Storage Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #1a1a1a;
+        color: white;
+      }
+
+      .container {
+        background-color: #2a2a2a;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+
+      .error {
+        background-color: #f44336;
+      }
+
+      .success {
+        background-color: #4caf50;
+      }
+
+      .output {
+        background-color: #333;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 10px;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px;
+        background-color: #333;
+        border: 1px solid #555;
+        border-radius: 4px;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Poll Result Storage Test</h1>
+
+    <div class="container">
+      <h2>Test Result Creation</h2>
+      <div class="form-group">
+        <label for="userName">User Name:</label>
+        <input type="text" id="userName" value="Test User" />
+      </div>
+
+      <div class="form-group">
+        <label for="userId">User ID:</label>
+        <input type="text" id="userId" value="user123" />
+      </div>
+
+      <div class="form-group">
+        <label for="score">Score:</label>
+        <input type="number" id="score" value="350" />
+      </div>
+
+      <div class="form-group">
+        <label for="roomCode">Room Code:</label>
+        <input type="text" id="roomCode" value="ROOM123" />
+      </div>
+
+      <button onclick="createResult()">Create Result</button>
+      <button onclick="getAllResults()">Get All Results</button>
+      <button onclick="getResultsByRoom()">Get Results by Room</button>
+      <button onclick="simulateLocalStorage()">
+        Simulate localStorage User
+      </button>
+
+      <div id="output" class="output"></div>
+    </div>
+
+    <div class="container">
+      <h2>Current Results</h2>
+      <div id="resultsDisplay" class="output"></div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:3000/api";
+      const outputDiv = document.getElementById("output");
+      const resultsDiv = document.getElementById("resultsDisplay");
+
+      function log(message, type = "info") {
+        const timestamp = new Date().toLocaleTimeString();
+        const colorClass =
+          type === "error" ? "error" : type === "success" ? "success" : "";
+        outputDiv.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
+        outputDiv.scrollTop = outputDiv.scrollHeight;
+      }
+
+      async function createResult() {
+        try {
+          const data = {
+            user_name: document.getElementById("userName").value,
+            user_id: document.getElementById("userId").value,
+            score: parseInt(document.getElementById("score").value),
+            room_code: document.getElementById("roomCode").value,
+          };
+
+          log(`Creating result: ${JSON.stringify(data)}`);
+
+          const response = await fetch(`${API_URL}/results`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            log(
+              `✅ Result created successfully: ${JSON.stringify(result, null, 2)}`,
+              "success"
+            );
+            getAllResults(); // Refresh the results display
+          } else {
+            log(`❌ Error creating result: ${JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          log(`❌ Network error: ${error.message}`, "error");
+        }
+      }
+
+      async function getAllResults() {
+        try {
+          log("Fetching all results...");
+
+          const response = await fetch(`${API_URL}/results`);
+          const result = await response.json();
+
+          if (response.ok) {
+            log(`✅ Retrieved ${result.data.length} results`, "success");
+            resultsDiv.innerHTML = JSON.stringify(result.data, null, 2);
+          } else {
+            log(
+              `❌ Error fetching results: ${JSON.stringify(result)}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          log(`❌ Network error: ${error.message}`, "error");
+        }
+      }
+
+      async function getResultsByRoom() {
+        try {
+          const roomCode = document.getElementById("roomCode").value;
+          log(`Fetching results for room: ${roomCode}`);
+
+          const response = await fetch(
+            `${API_URL}/results?room_code=${roomCode}`
+          );
+          const result = await response.json();
+
+          if (response.ok) {
+            log(
+              `✅ Retrieved ${result.data.length} results for room ${roomCode}`,
+              "success"
+            );
+            resultsDiv.innerHTML = JSON.stringify(result.data, null, 2);
+          } else {
+            log(
+              `❌ Error fetching results: ${JSON.stringify(result)}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          log(`❌ Network error: ${error.message}`, "error");
+        }
+      }
+
+      function simulateLocalStorage() {
+        const testUser = {
+          id: "user123",
+          fullName: "Test User",
+          firstName: "Test",
+          lastName: "User",
+          email: "test@example.com",
+          role: "student",
+        };
+
+        localStorage.setItem("user", JSON.stringify(testUser));
+        log("✅ Simulated localStorage user data set", "success");
+        log(`User data: ${JSON.stringify(testUser, null, 2)}`);
+      }
+
+      // Load initial results
+      getAllResults();
+    </script>
+  </body>
+</html>

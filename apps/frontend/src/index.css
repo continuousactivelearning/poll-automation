@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+:root {
+  --primary-color: #8B5CF6;
+  --secondary-color: #3B82F6;
+  --accent-color: #14B8A6;
+  --app-font-size: 16px;
+}
+
+/* Utility classes for background and text color using the CSS variables */
+.bg-primary-500 { background-color: var(--primary-color) !important; }
+.text-primary-500 { color: var(--primary-color) !important; }
+
+.bg-secondary-500 { background-color: var(--secondary-color) !important; }
+.text-secondary-500 { color: var(--secondary-color) !important; }
+
+.bg-accent-500 { background-color: var(--accent-color) !important; }
+.text-accent-500 { color: var(--accent-color) !important; }
+
+/* Set font size globally */
+html, body {
+  font-size: var(--app-font-size, 16px);
+}
+.blur-on-focus-loss *:not(.blur-on-focus-loss) {
+  filter: blur(8px) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}

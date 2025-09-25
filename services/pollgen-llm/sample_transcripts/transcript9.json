@@ -1,0 +1,4 @@
+{
+  "text": "Indexing improves the speed of data retrieval. Indexes are special lookup tables that the database search engine uses to speed up data access.\n\nThere are different types of indexes, like single-column indexes, composite indexes, and unique indexes. B-Trees and Hash Indexes are common underlying structures.\n\nTo ensure data safety, DBMSs offer backup and recovery mechanisms. Backups can be full, incremental, or differential. Recovery techniques, such as write-ahead logging and checkpoints, allow databases to restore to a consistent state in case of crashes or failures.\n\nWith this, you now have a solid foundation in DBMS fundamentals, and we’ll build on this with advanced topics like query optimization and distributed databases in future classes.",
+  "language": "English"
+}

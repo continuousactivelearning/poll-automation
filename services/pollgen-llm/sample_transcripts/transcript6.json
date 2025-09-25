@@ -1,0 +1,4 @@
+{
+  "text": "DBMSs rely on data models to define how data is logically organized. The most common models include the Hierarchical Model, Network Model, Relational Model, and Entity-Relationship (ER) Model.\n\nThe Relational Model, proposed by E. F. Codd, organizes data into tables (relations). Each table consists of rows (tuples) and columns (attributes).\n\nWe also follow a three-level schema architecture:\n- The **Internal level** defines physical storage.\n- The **Conceptual level** represents the structure of the database for the community of users.\n- The **External level** defines different user views.\n\nThis separation allows for data abstraction and independence, meaning changes at one level don’t necessarily impact others.",
+  "language": "English"
+}

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-   "workspaces": [
+  "workspaces": [
     "apps/*",
     "services/*",
     "shared/*"
@@ -19,6 +19,22 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.1",
   "devDependencies": {
+    "@types/node": "^24.0.3",
+    "@types/socket.io": "^3.0.1",
+    "@types/socket.io-client": "^1.4.36",
     "turbo": "^2.5.4"
+  },
+  "dependencies": {
+    "loadsh": "^0.0.4",
+    "lodash": "^4.17.21",
+    "lodash.includes": "^4.3.0",
+    "lodash.isboolean": "^3.0.3",
+    "lodash.isinteger": "^4.0.4",
+    "mongoose": "^8.16.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.3",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   }
 }
