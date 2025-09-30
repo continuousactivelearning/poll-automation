@@ -7,7 +7,15 @@ interface IPollOption {
   text: string;
 }
 
-// Define the interface for a ManualPollQuestion document
+// 1. Define the Answer Interface (for TypeScript)
+interface IPollAnswer {
+  userId: Types.ObjectId;
+  email: string;
+  answer: string;
+  answeredAt: Date;
+}
+
+// 2. Define the Main Poll Interface (updated to include answers)
 export interface IManualPollQuestion extends Document {
   sessionId: Types.ObjectId; // Reference to the Session this poll belongs to
   host: Types.ObjectId; // Reference to the User (Host) who created this poll
@@ -22,9 +30,19 @@ export interface IManualPollQuestion extends Document {
   createdAt: Date;
   approvedAt?: Date; // Timestamp when the poll was "pushed" or made active
   isActive: boolean; // Indicates if this specific poll question is currently active for students
+  // CRITICAL ADDITION:
+  answers?: IPollAnswer[]; // Array of poll submissions
 }
 
-// Define the ManualPollQuestion Schema
+// 3. Define the Answer Schema (Sub-document)
+const AnswerSchema = new Schema<IPollAnswer>({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  email: { type: String, required: true },
+  answer: { type: String, required: true }, // The selected option ID or short text
+  answeredAt: { type: Date, default: Date.now },
+}, { _id: false }); // Using false for _id since they are sub-documents
+
+// 4. Define the ManualPollQuestion Schema
 const ManualPollQuestionSchema = new Schema<IManualPollQuestion>({
   sessionId: {
     type: Schema.Types.ObjectId,
@@ -81,6 +99,11 @@ const ManualPollQuestionSchema = new Schema<IManualPollQuestion>({
   isActive: { // If this specific poll question is currently the one being displayed
     type: Boolean,
     default: false,
+  },
+  // CRITICAL FIX: Add the answers array to the main schema
+  answers: {
+    type: [AnswerSchema],
+    default: [],
   },
 });
 

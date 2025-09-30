@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import Session, { ISession } from '../models/Session';
 import ManualPollQuestion, { IManualPollQuestion } from '../models/ManualPollQuestions';
 import { IUser } from '../models/User';
-import { io } from '../../index'; // NEW: Import the io instance
+import { io } from '../../index'; 
 
 interface AuthRequest extends Request {
   user?: {
@@ -14,25 +14,135 @@ interface AuthRequest extends Request {
   };
 }
 
+interface LeaderboardStat {
+    userId: string;
+    name: string; 
+    email: string; 
+    points: number; 
+    correct: number; 
+    attempted: number; 
+    currentStreak: number; 
+    longestStreak: number;
+    accuracy: number;
+    avgTime: string;
+    rank: number;
+}
+
+// Helper function to normalize text (remove case and whitespace)
+const normalizeText = (text: string | undefined | null): string => {
+    return (text || '').toLowerCase().trim();
+};
+
+// Helper function to calculate points and streak 
+const calculateLeaderboardStats = (polls: IManualPollQuestion[]): LeaderboardStat[] => {
+    const stats: {
+        [userId: string]: { 
+            name: string; 
+            email: string; 
+            points: number; 
+            correct: number; 
+            attempted: number; 
+            currentStreak: number; 
+            longestStreak: number;
+            userId: string; 
+        } 
+    } = {};
+
+    polls.forEach(poll => {
+        const isGradable = (poll.questionType === 'mcq' || poll.questionType === 'truefalse') && poll.correctAnswer;
+        
+        let correctOptionId: string | null = null;
+
+        if (poll.questionType === 'mcq' && poll.options && poll.correctAnswer) {
+             // 1. Find the ID corresponding to the stored correct TEXT.
+             const correctOption = poll.options.find(opt => 
+                 normalizeText(opt.text) === normalizeText(poll.correctAnswer)
+             );
+             // The ID is the actual correct key we need for comparison (e.g., "b")
+             correctOptionId = correctOption?.id || null;
+        }
+
+
+        poll.answers?.forEach((answer: any) => {
+            const userId = answer.userId.toString();
+            
+            if (!stats[userId]) {
+                stats[userId] = { 
+                    userId: userId, 
+                    name: answer.email, 
+                    email: answer.email,
+                    points: 0, 
+                    correct: 0, 
+                    attempted: 0, 
+                    currentStreak: 0, 
+                    longestStreak: 0 
+                };
+            }
+
+            const userStats = stats[userId];
+            userStats.attempted += 1;
+            
+            if (isGradable) {
+                let isCorrect = false;
+
+                if (poll.questionType === 'mcq') {
+                    // FINAL FIX: Compare the submitted answer ID against the derived correct Option ID
+                    if (correctOptionId) {
+                        isCorrect = normalizeText(answer.answer) === normalizeText(correctOptionId);
+                    }
+                    
+                } else if (poll.questionType === 'truefalse') {
+                    // True/False: Compares submitted text/ID against the stored answer text
+                    isCorrect = normalizeText(answer.answer) === normalizeText(poll.correctAnswer);
+                }
+
+                if (isCorrect) {
+                    userStats.correct += 1;
+                    userStats.points += 10; 
+                    
+                    userStats.currentStreak += 1;
+                    if (userStats.currentStreak > userStats.longestStreak) {
+                        userStats.longestStreak = userStats.currentStreak;
+                    }
+                } else {
+                    userStats.currentStreak = 0;
+                }
+            }
+        });
+    });
+
+    // Convert to array and calculate final accuracy
+    const leaderboardArray = Object.values(stats).map(userStats => ({
+        ...userStats,
+        accuracy: userStats.attempted > 0 ? (userStats.correct / userStats.attempted) * 100 : 0,
+        // Mocking avgTime for display purposes
+        avgTime: (Math.random() * 5 + 1).toFixed(1), 
+        rank: 0, 
+    }));
+
+    // Sort and apply rank (TIE-BREAKING FIX)
+    const rankedArray = leaderboardArray.sort((a, b) => b.points - a.points);
+    
+    let currentRank = 1;
+    let lastPoints = -1;
+
+    return rankedArray.map((stats, index) => {
+        if (stats.points !== lastPoints) {
+            currentRank = index + 1;
+            lastPoints = stats.points;
+        }
+        return {
+            ...stats,
+            rank: currentRank
+        };
+    }) as LeaderboardStat[];
+};
+
+
 /**
  * @desc    Create a new manual poll question and make it active for a session
  * @route   POST /api/manual-polls/create
  * @access  Private (Host only)
- *
- * Request Body:
- * {
- * "sessionId": "65b8c...",
- * "questionTitle": "What is your favorite color?",
- * "questionType": "mcq",
- * "options": [
- * { "id": "option1", "text": "Red" },
- * { "id": "option2", "text": "Blue" }
- * ],
- * "timerEnabled": true,
- * "timerDuration": 60,
- * "timerUnit": "seconds",
- * "correctAnswer": "option1"
- * }
  */
 export const createManualPoll = async (req: AuthRequest, res: Response) => {
   console.log("Backend received request body (createManualPoll):", req.body);
@@ -101,8 +211,7 @@ export const createManualPoll = async (req: AuthRequest, res: Response) => {
       timerEnabled: timerEnabled || false,
       timerDuration: timerDuration || 30,
       timerUnit: timerUnit || 'seconds',
-      shortAnswerPlaceholder,
-      correctAnswer,
+      correctAnswer: correctAnswer, // Store the correct answer value (Text or ID)
       isActive: true,
       approvedAt: new Date(),
     });
@@ -113,7 +222,7 @@ export const createManualPoll = async (req: AuthRequest, res: Response) => {
 
     console.log(`Manual Poll Question ${newManualPollQuestion._id} created and set as active for session ${sessionId}`);
 
-    // NEW: Emit a Socket.IO event to notify clients about the new poll
+    // Emit a Socket.IO event to notify clients about the new poll
     io.emit('newPollAvailable', { roomCode: session.roomCode, pollId: newManualPollQuestion._id });
     console.log(`Emitted 'newPollAvailable' event for roomCode: ${session.roomCode}`);
 
@@ -139,7 +248,7 @@ export const createManualPoll = async (req: AuthRequest, res: Response) => {
  * @access  Private (Host or joined participant)
  */
 export const getActiveManualPoll = async (req: AuthRequest, res: Response) => {
-  console.log("Backend received request for active poll (getActiveManualPoll). User:", req.user);
+  //console.log("Backend received request for active poll (getActiveManualPoll). User:", req.user);
 
   if (!req.user || !req.user.id) {
     return res.status(401).json({ message: 'Not authorized. User information missing.' });
@@ -202,7 +311,7 @@ export const getActiveManualPoll = async (req: AuthRequest, res: Response) => {
       return res.status(200).json({ message: 'No active poll for this session found.', poll: null, sessionStatus: 'active' });
     }
 
-    console.log(`Active Manual Poll ${activePoll._id} fetched for session ${session._id} by user ${userEmail}`);
+    //console.log(`Active Manual Poll ${activePoll._id} fetched for session ${session._id} by user ${userEmail}`);
     res.status(200).json({ message: 'Active poll fetched successfully', poll: activePoll, sessionStatus: 'active' });
 
   } catch (error: any) {
@@ -212,4 +321,148 @@ export const getActiveManualPoll = async (req: AuthRequest, res: Response) => {
     }
     res.status(500).json({ message: 'Server error fetching active manual poll.', error: error.message });
   }
+};
+
+/**
+ * @desc    Submit a student's answer to the currently active poll
+ * @route   POST /api/manual-polls/submit-answer
+ * @access  Private (Authenticated student)
+ */
+export const submitPollAnswer = async (req: AuthRequest, res: Response) => {
+  if (!req.user || !req.user.id || !req.user.email) {
+    return res.status(401).json({ message: 'Not authorized. User information missing.' });
+  }
+
+  const { sessionId, pollId, answer } = req.body;
+  const userId = new Types.ObjectId(req.user.id);
+  const userEmail = req.user.email;
+
+  if (!sessionId || !pollId || !answer) {
+    return res.status(400).json({ message: 'Session ID, Poll ID, and Answer are required.' });
+  }
+
+  try {
+    // 1. Validate Session and Poll
+    const session = await Session.findById(sessionId);
+    const poll = await ManualPollQuestion.findById(pollId);
+
+    if (!session || !poll) {
+      return res.status(404).json({ message: 'Session or Poll not found.' });
+    }
+
+    if (session.currentPollId?.toString() !== pollId) {
+        return res.status(400).json({ message: 'This poll is no longer the active poll for the session.' });
+    }
+
+    // 2. Check if user is blocked/allowed (logic passed when joining session)
+    const isBlocked = session.blockedParticipants.some(
+        (blockedUserId: Types.ObjectId) => blockedUserId.toString() === userId.toString()
+    );
+    if (isBlocked) {
+        return res.status(403).json({ message: 'Access Denied. You have been blocked from this session.' });
+    }
+
+    // Check if the participant already answered this poll
+    const alreadyAnswered = poll.answers?.some((a: any) => a.userId.toString() === userId.toString());
+
+    if (alreadyAnswered) {
+        return res.status(400).json({ message: 'You have already submitted an answer for this poll.' });
+    }
+
+    // Save the answer by pushing to the answers array
+    const answerData = {
+        userId: userId,
+        email: userEmail,
+        answer: answer,
+        answeredAt: new Date(),
+    };
+    
+    await ManualPollQuestion.updateOne(
+        { _id: pollId },
+        { $push: { answers: answerData } }
+    );
+    
+    // 3. Emit update event for host dashboard (Live Results)
+    io.to(session.roomCode.toUpperCase()).emit('pollAnswered', { 
+        pollId: pollId, 
+        userId: userId, 
+        answer: answer 
+    });
+
+    res.status(200).json({ message: 'Answer submitted successfully.' });
+
+  } catch (error: any) {
+    console.error('Error submitting poll answer:', error);
+    res.status(500).json({ message: 'Server error submitting poll answer.', error: error.message });
+  }
+};
+
+/**
+ * @desc    Get the calculated leaderboard data for a specific session
+ * @route   GET /api/manual-polls/leaderboard/:sessionId
+ * @access  Private (Host or joined participant for meeting view)
+ */
+export const getLeaderboardBySessionId = async (req: AuthRequest, res: Response) => {
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ message: 'Not authorized. User information missing.' });
+    }
+
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    if (!sessionId || !Types.ObjectId.isValid(sessionId)) {
+        return res.status(400).json({ message: 'Valid session ID is required.' });
+    }
+
+    try {
+        const session = await Session.findById(sessionId);
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found.' });
+        }
+
+        // Host check
+        const isHost = session.host.toString() === userId;
+        if (!isHost) {
+            return res.status(403).json({ message: 'Forbidden. Only the host can access the full leaderboard.' });
+        }
+
+        // 1. Fetch all polls for this session
+        const allPolls = await ManualPollQuestion.find({
+            sessionId: new Types.ObjectId(sessionId),
+            approvedAt: { $exists: true } // Only count approved/pushed polls
+        }).lean() as IManualPollQuestion[];
+
+        // 2. Calculate the stats
+        const leaderboardData = calculateLeaderboardStats(allPolls);
+
+        // 3. Enrich data with full user names from Session's joinedParticipants
+        const participantMap = new Map();
+        session.joinedParticipants.forEach(p => {
+            if (p.userId && p.fullName) {
+                participantMap.set(p.userId.toString(), p.fullName);
+            }
+        });
+
+        const finalLeaderboard = leaderboardData.map(item => {
+            const nameFromSession = participantMap.get(item.userId); // Use item.userId which is a string now
+            return {
+                ...item,
+                name: nameFromSession || item.name, // Use full name if available
+            };
+        });
+        
+        console.log(`Leaderboard generated for session ${sessionId} with ${finalLeaderboard.length} participants.`);
+
+        res.status(200).json({
+            message: 'Leaderboard data fetched successfully',
+            leaderboard: finalLeaderboard,
+            sessionId: session._id,
+            sessionTitle: session.sessionTitle
+        });
+
+    } catch (error: any) {
+        console.error('Error fetching leaderboard:', error);
+        res.status(500).json({ message: 'Server error fetching leaderboard.', error: error.message });
+    }
 };

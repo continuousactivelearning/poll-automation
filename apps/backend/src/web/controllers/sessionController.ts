@@ -160,7 +160,7 @@ export const createSession = async (req: AuthRequest, res: Response) => {
 
     console.log(`Session created successfully for host ${hostEmail}: ${newSession._id}`);
     if (invitedParticipants && invitedParticipants.length > 0) {
-      const clientUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const clientUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
       for (const participant of invitedParticipants) {
         await sendSessionInvites(hostName, sessionTitle, roomCode, participant, clientUrl);
       }
@@ -330,7 +330,7 @@ export const getSessionById = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Forbidden. You do not have access to this session.' });
     }
     
-    console.log(`Session ${session._id} fetched by ID for user ${req.user.email}.`);
+    //console.log(`Session ${session._id} fetched by ID for user ${req.user.email}.`);
     res.status(200).json({ message: 'Session fetched successfully', session });
   } catch (error: any) {
     console.error('Error fetching session by ID:', error);

@@ -41,7 +41,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     const subject = "Welcome to Automatic Poll Generation!";
     const text = `Dear ${newUser.fullName},\n\nWelcome to Automatic Poll Generation!...`;
-    const html = `<div> ... your email HTML content ... </div>`;
+    const html = `<div> Welcome aboard! Your registration for the Poll System is complete. You are now ready to create engaging polls for your students or join sessions as a participant. </div>`;
 
     sendEmail(newUser.email, subject, text, html).catch(err =>
       console.error(`Error sending welcome email:`, err)

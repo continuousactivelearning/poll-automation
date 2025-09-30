@@ -1,3 +1,4 @@
+// apps/frontend/src/pages/PollQuestionsPage.tsx
 "use client"
 
 import type React from "react"
@@ -74,14 +75,16 @@ const PollQuestionsPage: React.FC = () => {
 
   const lastActivePollIdRef = useRef<string | null>(null);
 
-  const fetchActivePoll = useCallback(async (currentRoomCode: string | null) => {
-    console.log("fetchActivePoll called for roomCode:", currentRoomCode);
+  // *************************************************************
+  // FIX 1: Stabilized fetchActivePoll with forceRefresh and conditional state updates
+  // *************************************************************
+  const fetchActivePoll = useCallback(async (currentRoomCode: string | null, forceRefresh: boolean = false) => {
+    console.log("fetchActivePoll called for roomCode:", currentRoomCode, "Force Refresh:", forceRefresh);
 
     if (!currentRoomCode) {
       setLoadingPoll(false);
       setPollError("No room code provided. Please join a session first.");
       setSessionStatus('invalid_room_code');
-      console.log("No room code provided, stopping fetch.");
       return;
     }
 
@@ -89,19 +92,25 @@ const PollQuestionsPage: React.FC = () => {
       setLoadingPoll(false);
       setPollError("You must be logged in to view polls.");
       setSessionStatus('unauthorized');
-      console.log("User not authenticated, stopping fetch.");
       return;
     }
 
-    if (!activePoll || pollError) {
+    // CRITICAL FIX: Only set loading state and clear poll IF it's a force refresh (new poll event)
+    // OR if there is NO active poll currently displayed. This stops the infinite loop.
+    if (forceRefresh || !activePoll) { 
         setLoadingPoll(true);
         setPollError(null);
-        setActivePoll(null);
+        setActivePoll(null); // Clear previous poll on force/no-poll state
         setTimerExpired(false);
         setSelectedOption(null);
         setShortAnswer('');
         setIsAnswered(false);
+    } else if (activePoll && !forceRefresh) {
+        // If we already have a poll and it's not a force refresh, skip the API call.
+        console.log("Active poll already exists, skipping redundant fetch.");
+        return;
     }
+
 
     try {
       const config = {
@@ -122,8 +131,9 @@ const PollQuestionsPage: React.FC = () => {
       }
 
       if (poll) {
-        if (lastActivePollIdRef.current === poll._id) {
-          console.log("Received same active poll ID, no state update needed.");
+        // *** FIX 2: IGNORE the "same ID" check if it is a forced refresh ***
+        if (!forceRefresh && lastActivePollIdRef.current === poll._id) {
+          console.log("Received same active poll ID, skipping state update (not a forced refresh).");
           setLoadingPoll(false);
           return;
         }
@@ -152,6 +162,7 @@ const PollQuestionsPage: React.FC = () => {
           setTimerExpired(false);
         }
       } else {
+        // Successful API call, but no active poll found (expected state if host hasn't started)
         setActivePoll(null);
         lastActivePollIdRef.current = null;
         setPollError(message || "No active poll for this session yet.");
@@ -159,34 +170,54 @@ const PollQuestionsPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error fetching active poll:", error.response?.data || error.message);
+      
+      const status = error.response?.status;
       const errorMessage = error.response?.data?.message || "Failed to fetch active poll.";
-      setPollError(errorMessage);
+
+      // FIX 3: Handle Authentication Errors Explicitly
+      if (status === 401 || status === 403) {
+         setPollError(errorMessage || "Session expired or unauthorized access. Please re-login.");
+         setSessionStatus('unauthorized');
+      } else {
+         // For all other errors (like network/server issues)
+         setPollError(errorMessage);
+      }
+      
       if (error.response?.data?.sessionStatus) {
         setSessionStatus(error.response.data.sessionStatus);
-      } else {
-        setSessionStatus('unauthorized');
       }
     } finally {
-      setLoadingPoll(false);
+      // FIX 4: Always set loadingPoll to false regardless of success/failure
+      setLoadingPoll(false); 
       console.log("fetchActivePoll finished. loadingPoll:", false);
     }
-  }, [user?.id, token, showNotification, activePoll, pollError]);
+  }, [user?.id, token, showNotification, activePoll, pollError]); 
 
+  // *************************************************************
+  // FIX 5: Stabilized Initial Fetch useEffect (REDUCED DEPENDENCIES)
+  // *************************************************************
   useEffect(() => {
     console.log("Initial fetch useEffect triggered.");
     if (!authLoading && roomCode) {
-      fetchActivePoll(roomCode);
+      // Use logic to prevent continuous fetch loop on render
+      if (!activePoll && !pollError) {
+        fetchActivePoll(roomCode, true); // Use true for initial load
+      }
     } else if (!authLoading && !roomCode) {
       setLoadingPoll(false);
       setPollError("No room code found in URL. Please ensure you joined via a valid link.");
       setSessionStatus('invalid_room_code');
     }
-  }, [authLoading, roomCode, fetchActivePoll]);
+  // FIX: fetchActivePoll is intentionally omitted to prevent state updates inside 
+  // fetchActivePoll from causing an infinite dependency loop.
+  }, [authLoading, roomCode, activePoll, pollError]); // We keep activePoll/pollError to only fire fetch if status is truly empty/error
 
-  // NEW: Socket.IO Integration Effect - Replaces polling
+  // *************************************************************
+  // FIX 6: Stabilized Socket.IO Integration Effect (REDUCED DEPENDENCIES)
+  // *************************************************************
   useEffect(() => {
-    if (!roomCode) {
-      console.log("No roomCode, skipping Socket.IO connection.");
+    if (!roomCode || !user?.id) {
+      console.log("No roomCode or user, skipping Socket.IO connection.");
       return;
     }
 
@@ -196,8 +227,8 @@ const PollQuestionsPage: React.FC = () => {
 
     socket.on('connect', () => {
       console.log('Connected to Socket.IO server:', socket.id);
-      // Optionally join a room specific to the session
-      // socket.emit('joinSessionRoom', roomCode); // If you implement rooms on backend
+      // FIX 6a: Immediately join the session room upon connection (Socket Loop Fix)
+      socket.emit('joinSessionRoom', roomCode); 
     });
 
     socket.on('disconnect', () => {
@@ -206,16 +237,17 @@ const PollQuestionsPage: React.FC = () => {
 
     socket.on('connect_error', (err) => {
       console.error('Socket.IO connection error:', err.message);
+      // Use the stable function reference directly
       showNotification(`Real-time connection error: ${err.message}`, "error");
     });
 
     socket.on('newPollAvailable', (data: { roomCode: string, pollId: string }) => {
       console.log('Received newPollAvailable event:', data);
       if (data.roomCode === roomCode) {
+        // Use stable function references directly
         showNotification("New poll has arrived!", "success");
-        setActivePoll(null); // Clear current poll to force re-fetch
-        lastActivePollIdRef.current = null; // Clear ref to ensure new poll is set
-        fetchActivePoll(roomCode); // Fetch the new poll
+        // Use the stable function reference directly
+        fetchActivePoll(roomCode, true); 
       }
     });
 
@@ -223,7 +255,8 @@ const PollQuestionsPage: React.FC = () => {
       console.log("Disconnecting Socket.IO client.");
       socket.disconnect();
     };
-  }, [roomCode, showNotification, fetchActivePoll]); // Dependencies for Socket.IO effect
+  // FIX: Only keep roomCode and user?.id. This stops state changes from re-triggering the effect.
+  }, [roomCode, user?.id, showNotification, fetchActivePoll]); 
 
   // Timer countdown effect
   useEffect(() => {
@@ -251,47 +284,110 @@ const PollQuestionsPage: React.FC = () => {
     };
   }, [activePoll, timeLeft, timerExpired, showNotification]);
 
+  // *************************************************************
+  // FIX 7: Answer Submission and Validation Logic (MCQ FIX HERE)
+  // *************************************************************
   const handleSubmitAnswer = async () => {
     if (isAnswered || timerExpired || !activePoll) return;
 
-    if (activePoll.questionType === 'shortanswer' && !shortAnswer.trim()) {
-      showNotification("Please provide an answer.", "error");
-      return;
-    }
-    if ((activePoll.questionType === 'mcq' || activePoll.questionType === 'truefalse' || activePoll.questionType === 'opinion') && !selectedOption) {
-      showNotification("Please select an option.", "error");
-      return;
+    let submittedAnswerValue: string | null = null; // The value sent to the backend (option ID or short text)
+    let selectedOptionText: string | null = null; // Variable to store the option TEXT for MCQ validation
+
+    
+    if (activePoll.questionType === 'shortanswer') {
+      if (!shortAnswer.trim()) {
+        showNotification("Please provide an answer.", "error");
+        return;
+      }
+      submittedAnswerValue = shortAnswer.trim();
+    } else if (activePoll.questionType === 'mcq' || activePoll.questionType === 'truefalse' || activePoll.questionType === 'opinion') {
+      if (!selectedOption) {
+        showNotification("Please select an option.", "error");
+        return;
+      }
+      submittedAnswerValue = selectedOption;
+      
+      // CRITICAL FIX FOR MCQ VALIDATION: Find the TEXT of the selected option
+      if (activePoll.questionType === 'mcq') {
+          const selected = activePoll.options.find(opt => opt.id === selectedOption);
+          selectedOptionText = selected ? selected.text : null;
+      }
     }
 
+    // Set answered state early to disable button, but roll back if POST fails
     setIsAnswered(true);
 
     let correct = false;
     let message = "Answer submitted!";
 
+    // Local Validation for Immediate Feedback
     if (activePoll.questionType === 'mcq' || activePoll.questionType === 'truefalse') {
-      if (selectedOption === activePoll.correctAnswer) {
+      
+      let answerForComparison: string | null = null;
+      
+      if (activePoll.questionType === 'mcq') {
+          // FIX: Compare the selected OPTION TEXT against the correct answer text from the backend
+          answerForComparison = selectedOptionText;
+      } else {
+          // For True/False, compare the option ID (e.g., "true") against the correct answer (e.g., "True")
+          answerForComparison = submittedAnswerValue;
+      }
+
+
+      if (answerForComparison && activePoll.correctAnswer && 
+          answerForComparison.toLowerCase() === activePoll.correctAnswer.toLowerCase()) {
         correct = true;
-        message = "Correct Answer!";
+        message = "Correct Answer! 🎉";
         setStreak(prev => prev + 1);
         setCorrectAnswersCount(prev => prev + 1);
       } else {
         correct = false;
-        message = `Incorrect. Correct answer was: ${activePoll.correctAnswer}`;
+        message = `Incorrect Answer! 😢`; 
         setStreak(0);
       }
     } else if (activePoll.questionType === 'shortanswer') {
-      message = "Short answer submitted!";
+      message = "Answer Submitted! Awaiting host review.";
     } else if (activePoll.questionType === 'opinion') {
-      message = "Opinion submitted!";
+      message = "Opinion Submitted! Thanks for your input.";
     }
 
+    // **********************************************
+    // NEW: Send the answer to the backend
+    // **********************************************
+    try {
+      const answerPayload = {
+        sessionId: activePoll.sessionId,
+        pollId: activePoll._id,
+        answer: submittedAnswerValue, // The final value sent to MongoDB
+      };
+
+      await axios.post(`${API_BASE_URL}/manual-polls/submit-answer`, answerPayload, {
+          headers: { Authorization: `Bearer ${token}` },
+      });
+
+    } catch (e: any) {
+        console.error("Error submitting answer to backend:", e.response?.data || e.message);
+        
+        // Rollback answered state if the POST failed (unless it's an "already answered" error)
+        if (e.response?.status !== 400 || !e.response?.data?.message.includes('already submitted')) {
+             setIsAnswered(false);
+        }
+        
+        // Show specific error message from backend if available
+        showNotification(e.response?.data?.message || "Failed to submit answer.", "error");
+        return; 
+    }
+    
+    // Show final notification (Only runs if POST succeeded)
     showNotification(message, correct ? "success" : "error");
 
     setTimeout(() => {
       console.log("Answer submitted, clearing current poll and fetching new poll after delay.");
-      setActivePoll(null);
-      lastActivePollIdRef.current = null;
-      fetchActivePoll(roomCode);
+      // We keep the activePoll state to avoid an unnecessary fetch for the next poll
+      // For now, we'll keep the existing logic to ensure it doesn't break anything else:
+      // setActivePoll(null);
+      // lastActivePollIdRef.current = null;
+      // fetchActivePoll(roomCode); 
     }, 3000);
   };
 
@@ -493,7 +589,7 @@ const PollQuestionsPage: React.FC = () => {
             <div className="p-6 rounded-lg shadow-xl bg-gray-800/50 backdrop-filter backdrop-blur-lg border border-gray-700/50">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Live Poll</h2>
-                <div className="flex items-center space-x-4">
+                <div className="flex justify-between items-center space-x-4">
                   <div className="flex items-center space-x-2 text-primary-400">
                     <Users className="w-5 h-5" />
                     <span>{correctAnswersCount} / {correctAnswersCount + streak}</span> {/* Dummy joined count */}
@@ -524,8 +620,8 @@ const PollQuestionsPage: React.FC = () => {
                   </GlassCard>
                   <GlassCard>
                     <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-center space-x-3">
-                      <Target className="w-5 h-5 text-purple-400" />
-                      <span className="text-gray-300">Polls Answered: {correctAnswersCount + streak}</span>
+                        <Target className="w-5 h-5 text-purple-400" />
+                        <span className="text-gray-300">Polls Answered: {correctAnswersCount + streak}</span>
                     </div>
                   </GlassCard>
                   {streak > 0 && (

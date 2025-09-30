@@ -1,3 +1,4 @@
+// apps/frontend/src/pages/CreatePollPage.tsx
 "use client"
 
 import type React from "react"
@@ -59,20 +60,17 @@ const CreatePollPage: React.FC = () => {
   const [students, setStudents] = useState<StudentInvite[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isSendingInvites, setIsSendingInvites] = useState(false) // This state is now mostly for UX feedback
   const [isDestroying, setIsDestroying] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [errors, setErrors] = useState<{ csv?: string; api?: string }>({})
   const [isPollActive, setIsPollActive] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(3 * 60 * 60)
-  const [invitesSent, setInvitesSent] = useState(false) // This state is now for UX feedback
+  const [invitesSent, setInvitesSent] = useState(false) 
   const [roomName, setRoomName] = useState("");
   const [roomNameError, setRoomNameError] = useState("");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
-  // isSessionDataLoaded will now primarily prevent duplicate fetches *within* a stable state,
-  // not prevent initial loads or re-loads after navigation.
-  const [isSessionDataLoaded, setIsSessionDataLoaded] = useState(false); 
+  // FIX: Removed unused state variables: isSendingInvites and isSessionDataLoaded 
 
   // Function to generate random room code (Frontend only)
   const generateRoomCode = (): string => {
@@ -97,7 +95,7 @@ const CreatePollPage: React.FC = () => {
 
       // Only attempt to fetch if auth is not loading, user is authenticated,
       // a token is available, AND savedSessionId is a valid string.
-      // Also, only fetch if the session data hasn't been loaded for this specific activeSessionId yet.
+      // Also, only fetch if the savedSessionId is different from the current activeSessionId
       if (!authLoading && user?.id && token && savedSessionId && savedSessionId !== "null" && savedSessionId !== activeSessionId) {
         try {
           const config = {
@@ -146,7 +144,6 @@ const CreatePollPage: React.FC = () => {
             } else {
               showNotification("Active session loaded from backend.", "info");
             }
-            setIsSessionDataLoaded(true); // Mark session data as loaded for this activeSessionId
           } else {
             console.log("Existing session is not active or does not belong to current user. Clearing.");
             localStorage.removeItem(POLL_STORAGE_KEY);
@@ -158,7 +155,6 @@ const CreatePollPage: React.FC = () => {
             setStudents([]);
             setInvitesSent(false);
             setShowPreview(false);
-            setIsSessionDataLoaded(false); // Reset flag if session is invalid
           }
         } catch (error: any) {
           console.error("Error fetching active session:", error.response?.data || error.message);
@@ -172,13 +168,11 @@ const CreatePollPage: React.FC = () => {
           setStudents([]);
           setInvitesSent(false);
           setShowPreview(false);
-          setIsSessionDataLoaded(false); // Reset flag on error
         }
       } else if (!authLoading && (!user?.id || !token || !savedSessionId || savedSessionId === "null" || savedSessionId === activeSessionId)) {
         // If auth is stable but no valid user/token or savedSessionId is invalid,
         // OR if the current activeSessionId is already loaded, ensure states are consistent.
-        // This block primarily handles initial state setup or clearing when no valid session is found/needed.
-        if (!activeSessionId) { // Only reset if no active session is truly set
+        if (!activeSessionId) { 
           localStorage.removeItem(POLL_STORAGE_KEY);
           setRoomCode(generateRoomCode());
           setIsPollActive(false);
@@ -187,23 +181,15 @@ const CreatePollPage: React.FC = () => {
           setStudents([]);
           setInvitesSent(false);
           setShowPreview(false);
-          setIsSessionDataLoaded(false);
         }
       }
       setLoadingSession(false); // End loading regardless of whether a session was found
     };
 
-    // Only call loadSession if auth is not loading, as user and token will be stable then
-    // And if current activeSessionId is null or different from savedSessionId
-    // This ensures it attempts to load if a session is in local storage, or if we need to initialize.
-    if (!authLoading && (!activeSessionId || localStorage.getItem(POLL_STORAGE_KEY) !== activeSessionId)) {
+    if (!authLoading) {
       loadSession();
-    } else if (!authLoading && activeSessionId && localStorage.getItem(POLL_STORAGE_KEY) === activeSessionId) {
-      // If there's an active session and it matches local storage, and auth is done,
-      // we can assume it's loaded and stop the loading indicator.
-      setLoadingSession(false);
     }
-  }, [token, user?.id, authLoading, activeSessionId, showNotification]); // Removed isSessionDataLoaded from dependencies to allow re-evaluation
+  }, [token, user?.id, authLoading, activeSessionId, showNotification]); 
 
   // Persist active session ID to localStorage
   useEffect(() => {
@@ -291,7 +277,6 @@ const CreatePollPage: React.FC = () => {
       setStudents([]);
       setCsvFile(null);
       setErrors({});
-      setIsSessionDataLoaded(false); // Reset this flag after destroying session
       
     } catch (error: any) {
       console.error("Error destroying room (Frontend):", error.response?.data || error.message);
@@ -474,9 +459,10 @@ const CreatePollPage: React.FC = () => {
   }
 
   // Handle send invites (This will now be part of createSession, but kept for UX)
-  const handleSendInvites = async () => {
+  // FIX: Renamed and simplified the handleSendInvites logic.
+  const handleSendInvitesUX = async () => {
     if (students.length === 0) {
-      showNotification("No students to invite. Upload a CSV first.", "warning");
+      showNotification("No students to invite. Upload a CSV first.", "info");
       return;
     }
     // This is now purely for UX feedback, the actual invites are sent with session creation
@@ -542,15 +528,12 @@ const CreatePollPage: React.FC = () => {
 
       showNotification("Poll session created successfully!", "success");
       console.log("Created Session (Frontend):", createdSession);
-      setIsSessionDataLoaded(true); // Mark session data as loaded after creation
-
     } catch (error: any) {
       console.error("Error creating poll session (Frontend):", error.response?.data || error.message);
       const errorMessage = error.response?.data?.message || "Failed to create poll session.";
       setErrors((prev) => ({ ...prev, api: errorMessage }));
       showNotification(errorMessage, "error");
       setIsPollActive(false);
-      setIsSessionDataLoaded(false); // Reset flag on error
     } finally {
       setIsLoading(false);
     }
@@ -856,21 +839,14 @@ const CreatePollPage: React.FC = () => {
                       <motion.button
                         whileHover={!invitesSent && !isPollActive ? { scale: 1.02 } : {}}
                         whileTap={!invitesSent && !isPollActive ? { scale: 0.98 } : {}}
-                        onClick={handleSendInvites}
-                        disabled={invitesSent || isSendingInvites || isPollActive}
+                        onClick={handleSendInvitesUX}
+                        disabled={invitesSent || isPollActive}
                         className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${invitesSent || isPollActive
                           ? "bg-green-600 text-white cursor-default"
-                          : isSendingInvites
-                            ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl"
+                          : "bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl"
                           }`}
                       >
-                        {isSendingInvites ? (
-                          <div className="flex items-center justify-center space-x-2">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>Sending Invites...</span>
-                          </div>
-                        ) : invitesSent ? (
+                        {invitesSent ? (
                           <div className="flex items-center justify-center space-x-2">
                             <Mail className="w-5 h-5" />
                             <span>Invites Sent Successfully</span>
