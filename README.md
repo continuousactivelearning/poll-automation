@@ -271,7 +271,7 @@ Session Analytics → Report Generation → Final Results
 ## 📁 Project Structure
 
 ```
-PollGen/
+Poll-Automation/
 ├── apps/
 │   ├── backend/                    # Node.js Express Server
 │   │   ├── src/
@@ -287,18 +287,10 @@ PollGen/
 │       │   ├── contexts/           # WebSocket and Auth contexts
 │       │   └── utils/              # API services and helpers
 │       └── package.json
-├── services/
-│   ├── pollgen-gemini/             # AI Question Generation Service
-│   │   ├── gemini.py               # Google Gemini API integration
-│   │   ├── main.py                 # FastAPI server
-│   │   └── requirements.txt
-│   └── pollgen-llm/                # Alternative LLM Service
-│       ├── server.py               # Local LLM server
-│       └── vector.py               # Embedding utilities
-├── shared/
+shared
 │   ├── types/                      # TypeScript type definitions
 │   └── utils/                      # Shared utilities
-└── package.json                    # Monorepo configuration
+└── package.json                    
 ```
 
 ## 🚀 Getting Started
@@ -315,8 +307,8 @@ PollGen/
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/PollGen.git
-cd PollGen
+git clone --branch prod https://github.com/continuousactivelearning/poll-automation.git
+cd poll-automation
 ```
 
 #### 2. Install Dependencies
@@ -325,7 +317,12 @@ cd PollGen
 # Install pnpm globally if not already installed
 npm install -g pnpm
 
-# Install all project dependencies
+# Install backend dependencies
+cd apps/backend
+pnpm install
+
+# Install frontend dependencies
+cd apps/frontend
 pnpm install
 ```
 
@@ -335,53 +332,54 @@ Create `.env` files in the respective directories:
 
 **`apps/backend/.env`**
 ```env
+# Server configuration
 PORT=8000
-MONGODB_URI=mongodb://localhost:27017/pollgen
-JWT_SECRET=your-jwt-secret-key
+HOST=localhost
+CORS_ORIGIN=http://localhost:5174
 ACCESS_TOKEN_SECRET=your-access-token-secret
+ACCESS_TOKEN_EXPIRY=1d
+REFRESH_TOKEN_SECRET=your-refresh-access-token-secret
+REFRESH_TOKEN_EXPIRY=7d
+JWT_SECRET=your-jwt-secret-key
+
+# Database configuration
+DB_NAME=poll-automation
+MONGODB_URI="mongodb://localhost:27017"
+
+# Cloudinary configuration
+CLOUDINARY_CLOUD_NAME=your-cloudinary-name
+CLOUDINARY_API_KEY=your-cloudinary-key
+CLOUDINARY_API_SECRET=your-cloudinary-secret
+
+# Email configuration
 EMAIL_HOST=smtp-relay.brevo.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@example.com
 EMAIL_PASS=your-email-password
 SENDER_EMAIL=noreply@pollgen.com
-GOOGLE_API_KEY=your-google-api-key
+
+# JWT configuration
+JWT_SECRET=your-jwt-secret-key
+
+# Frontend URL
 FRONTEND_URL=http://localhost:5174
-CLOUDINARY_CLOUD_NAME=your-cloudinary-name
-CLOUDINARY_API_KEY=your-cloudinary-key
-CLOUDINARY_API_SECRET=your-cloudinary-secret
+
+# Gemini API configuration
+GEMINI_API_KEY=your-google-api-key
+
 ```
 
 **`apps/frontend/.env`**
 ```env
-VITE_API_URL=http://localhost:8000
-VITE_BACKEND_WS_URL=ws://localhost:8000
+VITE_API_URL=http://localhost:8000/api
+VITE_SOCKET_URL=http://localhost:8000
+VITE_FRONTEND_URL=http://localhost:5174
+
+# Gemini API Key for AI Question Generation
+VITE_GEMINI_API_KEY=your-google-api-key
 ```
 
-**`services/pollgen-gemini/.env`**
-```env
-GEMINI_API_KEY=your-gemini-api-key
-```
-
-#### 4. Set Up Python Services
-
-```bash
-# Navigate to AI service directory
-cd services/pollgen-gemini
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-#### 5. Database Setup
+#### 4. Database Setup
 
 Ensure MongoDB is running locally or configure MongoDB Atlas connection in your environment variables.
 
@@ -393,26 +391,28 @@ From the root directory:
 
 ```bash
 # Start all services in development mode
-pnpm dev
+cd apps/backend
+pnpm run dev
+
+cd apps/frontend
+pnpm run dev
 ```
 
 This will start:
 - **Frontend**: http://localhost:5174
 - **Backend**: http://localhost:8000
-- **AI Services**: http://localhost:8001
 
 #### Individual Services
 
 ```bash
 # Start only backend
-pnpm dev:backend
+cd apps/backend 
+pnpm run dev
 
 # Start only frontend
-pnpm dev:frontend
+cd apps/frontend
+pnpm run dev
 
-# Start AI services
-cd services/pollgen-gemini
-python main.py
 ```
 
 ### 🔐 API Key Setup
@@ -420,7 +420,7 @@ python main.py
 #### Google Gemini API
 1. Visit [Google AI Studio](https://makersuite.google.com/)
 2. Generate an API key
-3. Add to `services/pollgen-gemini/.env` as `GEMINI_API_KEY`
+3. Add to `.env` as `GEMINI_API_KEY`
 
 #### Cloudinary (Optional - for file uploads)
 1. Create account at [Cloudinary](https://cloudinary.com/)
@@ -444,7 +444,7 @@ python main.py
 4. Participate in polls and track your progress
 5. View leaderboard and achievements
 
-## 🛠️ Available Scripts
+<!-- ## 🛠️ Available Scripts
 
 ```bash
 # Development
@@ -461,7 +461,7 @@ pnpm build:frontend   # Build frontend only
 pnpm lint             # Lint all code
 pnpm test             # Run tests
 pnpm clean            # Clean build artifacts
-```
+``` -->
 
 ## 📊 Main Project Functions
 
@@ -519,5 +519,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - All contributors and testers who helped improve this project
 
 ---
-
-**Built with ❤️ by the Tirumalasetty Sashi Pavan **
