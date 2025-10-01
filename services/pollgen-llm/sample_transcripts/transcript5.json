@@ -1,0 +1,4 @@
+{
+  "text": "The key components of a DBMS include the Database Engine, Database Schema, Query Processor, and Transaction Manager.\n\nThe Database Engine is responsible for storing, retrieving, and updating data. The Schema defines the logical structure of the database—this includes tables, columns, data types, and relationships.\n\nThe Query Processor interprets and executes SQL queries. When a user requests data, it parses the SQL, optimizes it, and then executes it through the engine.\n\nThe Transaction Manager ensures data integrity and consistency. It handles multiple transactions simultaneously and uses concepts like ACID properties — Atomicity, Consistency, Isolation, and Durability — to ensure that the database remains accurate and reliable, even during failures.",
+  "language": "English"
+}

@@ -1,0 +1,4 @@
+{
+  "text": "SQL, or Structured Query Language, is the standard language for interacting with relational databases. It includes Data Definition Language (DDL) commands like CREATE and ALTER, Data Manipulation Language (DML) commands like SELECT, INSERT, UPDATE, DELETE, and Data Control Language (DCL) commands like GRANT and REVOKE.\n\nTo maintain data integrity, we use keys. A **Primary Key** uniquely identifies each record in a table. **Foreign Keys** enforce referential integrity by linking rows from one table to another.\n\nThere are also **Candidate Keys**, which are potential primary keys, and **Composite Keys**, which use multiple columns together to uniquely identify a record.",
+  "language": "English"
+}

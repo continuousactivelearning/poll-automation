@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
+
+:root {
+  --primary-color: #8B5CF6;
+  --secondary-color: #3B82F6;
+  --accent-color: #14B8A6;
+  --app-font-size: 16px;
+}
+
+/* Utility classes for background and text color using the CSS variables */
+.bg-primary-500 { background-color: var(--primary-color) !important; }
+.text-primary-500 { color: var(--primary-color) !important; }
+
+.bg-secondary-500 { background-color: var(--secondary-color) !important; }
+.text-secondary-500 { color: var(--secondary-color) !important; }
+
+.bg-accent-500 { background-color: var(--accent-color) !important; }
+.text-accent-500 { color: var(--accent-color) !important; }
+
+/* Set font size globally */
+html, body {
+  font-size: var(--app-font-size, 16px);
+}
+.blur-on-focus-loss *:not(.blur-on-focus-loss) {
+  filter: blur(8px) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+
+@layer components {
+  .settings-input {
+    @apply w-full bg-gray-700/50 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition;
+  }
+  .settings-input-disabled {
+    @apply settings-input bg-gray-800 opacity-60 cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-purple-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-purple-700 transition;
+  }
+  .btn-secondary {
+    @apply bg-gray-700 text-gray-300 font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition;
+  }
+  .btn-danger {
+     @apply bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition;
+  }
+}
