@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+  - services/*
+  - shared/*
+
+onlyBuiltDependencies:
+  - esbuild

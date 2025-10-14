@@ -1,0 +1,27 @@
+# Render.com Service Configuration
+# This file helps with automatic deployment setup
+
+name: pollgen-backend
+type: web
+
+env:
+  - NODE_VERSION=18
+
+buildCommand: npm install && npm install typescript && npx tsc --project tsconfig.production.json
+startCommand: npm run render:start
+
+# Health check endpoint
+healthCheckPath: /
+
+# Environment variables (set these in Render dashboard)
+envVars:
+  - key: PORT
+    value: 8000
+  - key: NODE_ENV
+    value: production
+  - key: MONGODB_URI
+    fromDatabase: mongodb-atlas
+  - key: FRONTEND_URL
+    fromService: pollgen-frontend
+  - key: GEMINI_API_KEY
+    fromSecret: gemini-api-key

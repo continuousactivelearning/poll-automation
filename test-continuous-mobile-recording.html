@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Continuous Mobile Recording</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .primary { background: #007bff; color: white; }
+        .success { background: #28a745; color: white; }
+        .danger { background: #dc3545; color: white; }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .recording { background: #d4edda; color: #155724; }
+        .idle { background: #f8f9fa; color: #495057; }
+        .error { background: #f8d7da; color: #721c24; }
+        #transcript {
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f8f9fa;
+            white-space: pre-wrap;
+        }
+        .device-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Continuous Mobile Recording</h1>
+    
+    <div class="device-info">
+        <strong>Device Info:</strong>
+        <div id="deviceInfo"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Speech Recognition Test</h3>
+        <div id="status" class="status idle">Ready to start</div>
+        <button id="startBtn" class="primary">Start Continuous Recording</button>
+        <button id="stopBtn" class="danger" disabled>Stop Recording</button>
+        
+        <h4>Transcript:</h4>
+        <div id="transcript"></div>
+        
+        <h4>Test Log:</h4>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // Device detection
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        function isChromeOnMobile() {
+            return isMobileDevice() && /Chrome/i.test(navigator.userAgent) && !/Edge/i.test(navigator.userAgent);
+        }
+
+        // Display device info
+        document.getElementById('deviceInfo').innerHTML = `
+            Mobile Device: ${isMobileDevice()}<br>
+            Chrome on Mobile: ${isChromeOnMobile()}<br>
+            User Agent: ${navigator.userAgent}<br>
+            Speech Recognition Available: ${!!window.SpeechRecognition || !!window.webkitSpeechRecognition}
+        `;
+
+        // Log function
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Speech recognition setup
+        let recognition = null;
+        let isRecording = false;
+        let silenceTimer = null;
+        let autoRestartTimer = null;
+        let transcript = '';
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            log('Speech Recognition not supported');
+            document.getElementById('startBtn').disabled = true;
+        }
+
+        function updateStatus(message, className = 'idle') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${className}`;
+        }
+
+        function updateTranscript(text) {
+            transcript = text;
+            document.getElementById('transcript').textContent = text;
+        }
+
+        function startContinuousRecording() {
+            if (!SpeechRecognition) {
+                log('Speech Recognition not available');
+                return;
+            }
+
+            try {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    updateStatus('Recording... (continuous mode)', 'recording');
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    log('Speech recognition started');
+                    
+                    // Start silence detection timer
+                    resetSilenceTimer();
+                };
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    // Update display
+                    const currentTranscript = (transcript + finalTranscript + interimTranscript).trim();
+                    updateTranscript(currentTranscript);
+
+                    // Reset silence timer on any speech
+                    if (finalTranscript || interimTranscript) {
+                        resetSilenceTimer();
+                        log(`Speech detected: "${finalTranscript || interimTranscript}"`);
+                    }
+
+                    // Add final results to transcript
+                    if (finalTranscript) {
+                        transcript += finalTranscript;
+                        log(`Final result added: "${finalTranscript}"`);
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    log(`Recognition error: ${event.error}`);
+                    if (event.error === 'no-speech' && isRecording) {
+                        log('No speech detected, will auto-restart');
+                        scheduleAutoRestart();
+                    } else if (event.error === 'network') {
+                        log('Network error, attempting restart');
+                        scheduleAutoRestart();
+                    }
+                };
+
+                recognition.onend = () => {
+                    log('Recognition ended');
+                    if (isRecording) {
+                        log('Auto-restarting speech recognition');
+                        scheduleAutoRestart();
+                    }
+                };
+
+                recognition.start();
+                log('Starting continuous recording...');
+
+            } catch (error) {
+                log(`Error starting recognition: ${error.message}`);
+                updateStatus('Error starting recording', 'error');
+            }
+        }
+
+        function stopContinuousRecording() {
+            isRecording = false;
+            
+            if (recognition) {
+                recognition.stop();
+                recognition = null;
+            }
+
+            clearTimeout(silenceTimer);
+            clearTimeout(autoRestartTimer);
+
+            updateStatus('Recording stopped', 'idle');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+
+            log('Recording stopped');
+            
+            if (transcript.trim()) {
+                log(`Final transcript: "${transcript}"`);
+                // Here you would normally save to database
+                log('Transcript would be saved to database');
+            }
+        }
+
+        function resetSilenceTimer() {
+            clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(() => {
+                if (isRecording && transcript.trim()) {
+                    log('10 seconds of silence detected, saving transcript');
+                    log(`Saving: "${transcript}"`);
+                    // Here you would save to database
+                    transcript = ''; // Reset for next segment
+                    updateTranscript('');
+                    log('Transcript saved and reset for next segment');
+                }
+            }, 10000); // 10 seconds
+        }
+
+        function scheduleAutoRestart() {
+            clearTimeout(autoRestartTimer);
+            autoRestartTimer = setTimeout(() => {
+                if (isRecording) {
+                    try {
+                        recognition = new SpeechRecognition();
+                        recognition.continuous = true;
+                        recognition.interimResults = true;
+                        recognition.lang = 'en-US';
+                        
+                        // Reattach all event handlers
+                        setupRecognitionHandlers();
+                        recognition.start();
+                        log('Speech recognition restarted');
+                    } catch (error) {
+                        log(`Error restarting recognition: ${error.message}`);
+                    }
+                }
+            }, 1000);
+        }
+
+        function setupRecognitionHandlers() {
+            recognition.onstart = () => {
+                log('Recognition restarted');
+                resetSilenceTimer();
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcriptText = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcriptText;
+                    } else {
+                        interimTranscript += transcriptText;
+                    }
+                }
+
+                const currentTranscript = (transcript + finalTranscript + interimTranscript).trim();
+                updateTranscript(currentTranscript);
+
+                if (finalTranscript || interimTranscript) {
+                    resetSilenceTimer();
+                    log(`Speech detected: "${finalTranscript || interimTranscript}"`);
+                }
+
+                if (finalTranscript) {
+                    transcript += finalTranscript;
+                    log(`Final result added: "${finalTranscript}"`);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                log(`Recognition error: ${event.error}`);
+                if (event.error === 'no-speech' && isRecording) {
+                    scheduleAutoRestart();
+                } else if (event.error === 'network') {
+                    scheduleAutoRestart();
+                }
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    scheduleAutoRestart();
+                }
+            };
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', startContinuousRecording);
+        document.getElementById('stopBtn').addEventListener('click', stopContinuousRecording);
+
+        log('Test page loaded and ready');
+    </script>
+</body>
+</html>

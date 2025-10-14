@@ -1,0 +1,34 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/"]
+    },
+    "start:whisper": {
+      "cache": false,
+      "dependsOn": ["install"]
+    },
+    "test:whisper": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:transcription": {
+      "cache": false,
+      "dependsOn": ["@poll-automation/types#build"]
+    },
+    "dev:web": {
+      "cache": false
+    },
+    "lint": {},
+    "format": {},
+    "test": {},
+    "install": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

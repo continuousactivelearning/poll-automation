@@ -1,0 +1,4 @@
+{
+  "text": "Normalization is the process of organizing data to reduce redundancy and improve data integrity. It involves decomposing tables into smaller tables and defining relationships among them.\n\nThere are several normal forms:\n- 1NF eliminates repeating groups.\n- 2NF removes partial dependencies.\n- 3NF removes transitive dependencies.\n\nTransactions are units of work performed against a database. A transaction must follow the ACID properties to be considered reliable. If any part of a transaction fails, the whole transaction is rolled back to ensure consistency.\n\nLocking mechanisms and concurrency control help manage simultaneous transactions and prevent conflicts like lost updates or dirty reads.",
+  "language": "English"
+}

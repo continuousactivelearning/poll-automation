@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_API_URL": "https://automatic-poll-generation-backend.onrender.com/api",
+    "VITE_BACKEND_URL": "https://automatic-poll-generation-backend.onrender.com",
+    "VITE_SOCKET_URL": "https://automatic-poll-generation-backend.onrender.com",
+    "VITE_WS_URL": "wss://automatic-poll-generation-backend.onrender.com",
+    "VITE_GEMINI_API_KEY": "AIzaSyCJoHEBAHDn6yDRSbwogerrpHF-tw5_Mjk"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "name": "pollgen-frontend",
+  "builds": [
+    {
+      "src": "apps/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ]
+}

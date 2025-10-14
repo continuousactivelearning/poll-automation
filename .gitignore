@@ -1,0 +1,104 @@
+# Node.js
+**/node_modules/
+**/dist/
+**/.build/
+**/.cache/
+**/*.log
+**/out/
+**/public/build/
+
+# Turborepo cache
+turbo/
+.turbo/
+
+# Package manager lockfiles
+pnpm-lock.yaml
+
+# Environment variables
+**/.env
+**/.env.local
+**/.env.*.local
+**/!.env.example
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+**/.Trash/
+**/.AppleDouble
+**/.Spotlight-V100
+**/.fseventsd
+
+# IDEs
+**/.vscode/
+**/.idea/
+
+# TypeScript
+**/*.tsbuildinfo
+**/.tscache/
+**/.eslintcache
+
+# Logs
+**/npm-debug.log*
+**/pnpm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/lerna-debug.log*
+*.pid
+
+# Test coverage / test reports
+**/coverage/
+**/*.lcov
+**/.vitest/
+**/jest-cache/
+**/jest-*
+**/test-results/
+**/junit.xml
+**/coverage-final.json
+**/coverage*.lcov
+
+# GitHub workflows artifacts (optional)
+**/.github/workflows/*.log
+
+# Build output (if applicable)
+build/
+
+# Misc (MacOS / others)
+**/.DS_Store
+
+# Faster Whisper environment
+services/whisper/whisper-env/
+.clipignore
+codeclip_20250618_231429.txt
+codeclip.py
+services/whisper/setup.bat
+services/whisper/__pycache__
+services/whisper/install_pytorch.py
+services/whisper/~
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.so
+
+# Python environments
+**/env/
+**/venv/
+**/.venv/
+**/venv.bak/
+**/.Python
+**/pip-wheel-metadata/
+**/pip-selfcheck.json
+**/pyvenv.cfg
+
+# Pollgen env
+services/pollgen-llm/pollgenenv/
+services/pollgen-llm/__pycache__
+services/pollgen-llm/chroma_langchain_db
+
+# Swap/Temp/Backup files
+*.swp
+*.swo
+*.bak
+*.tmp
+*.temp
+*~
