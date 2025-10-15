@@ -1,63 +1,212 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Users, Target, TrendingUp, Clock, Brain, Mic, Trophy, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import GlassCard from '../components/GlassCard';
+import { apiService } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const HostDashboard = () => {
   const navigate = useNavigate();
 
-  // Mock data
-  const participationData = [
-    { name: 'Mon', participants: 45, accuracy: 85 },
-    { name: 'Tue', participants: 52, accuracy: 78 },
-    { name: 'Wed', participants: 38, accuracy: 92 },
-    { name: 'Thu', participants: 61, accuracy: 86 },
-    { name: 'Fri', participants: 48, accuracy: 89 },
-    { name: 'Sat', participants: 35, accuracy: 91 },
-    { name: 'Sun', participants: 42, accuracy: 87 },
-  ];
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const confusionData = [
-    { topic: 'React Hooks', confusion: 25 },
-    { topic: 'State Management', confusion: 42 },
-    { topic: 'API Integration', confusion: 18 },
-    { topic: 'TypeScript', confusion: 35 },
-    { topic: 'Testing', confusion: 28 },
-  ];
+  // Explicit per-metric state (easier to bind to UI)
+  const [totalPolls, setTotalPolls] = useState<number | null>(null);
+  const [accuracyRate, setAccuracyRate] = useState<number | null>(null);
+  const [totalSessions, setTotalSessions] = useState<number | null>(null);
+  const [activeParticipants, setActiveParticipants] = useState<number | null>(null);
+  const [avgResponseTime, setAvgResponseTime] = useState<number | null>(null);
+
+  // Participation data used for chart
+  const participationData = stats?.participationTrends?.map((p: any) => ({ name: p.date.slice(5), participants: p.participants })) || [];
+
+  // recentSessions will be provided by backend (latest 5 sessions with accuracyRate)
+  const recentSessionsData = stats?.recentSessions?.map((s: any) => ({
+    name: s.sessionName || String(s.sessionId).slice(-4),
+    accuracy: s.accuracyRate
+  })) || [];
 
   const statsCards = [
     {
+      title: 'Total Sessions',
+      value: totalSessions !== null ? String(totalSessions) : '—',
+      change: '',
+      icon: Trophy,
+      color: 'from-indigo-500 to-blue-600',
+    },
+    {
       title: 'Total Polls',
-      value: '1,247',
-      change: '+12%',
+      value: totalPolls !== null ? String(totalPolls) : '—',
+      change: '',
       icon: Target,
       color: 'from-primary-500 to-purple-600',
     },
     {
       title: 'Accuracy Rate',
-      value: '87.5%',
-      change: '+5.2%',
+      value: accuracyRate !== null ? `${accuracyRate}%` : '—',
+      change: '',
       icon: TrendingUp,
       color: 'from-secondary-500 to-blue-600',
     },
     {
       title: 'Active Participants',
-      value: '342',
-      change: '+18%',
+      value: activeParticipants !== null ? String(activeParticipants) : '—',
+      change: '',
       icon: Users,
       color: 'from-accent-500 to-teal-600',
     },
     {
       title: 'Avg Response Time',
-      value: '2.3s',
-      change: '-0.5s',
+      value: avgResponseTime !== null ? `${avgResponseTime}s` : '—',
+      change: '',
       icon: Clock,
       color: 'from-orange-500 to-red-600',
     },
   ];
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await apiService.getHostStats();
+        const data = res.data;
+        setStats(data);
+        // set explicit states
+        setTotalPolls(data.totalPolls ?? 0);
+  setTotalSessions(data.totalSessions ?? 0);
+        setAccuracyRate(data.accuracyRate ?? 0);
+        setActiveParticipants(data.activeParticipants ?? 0);
+        setAvgResponseTime(data.avgResponseTime ?? 0);
+      } catch (err: any) {
+        console.error('Failed to fetch stats', err);
+        setError(err.message || 'Failed to fetch stats');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Recent sessions (host-specific)
+  const { socket, user } = useAuth();
+  const [connStatus, setConnStatus] = useState<'active' | 'connecting' | 'disconnected'>('connecting');
+  const [recentSessions, setRecentSessions] = useState<Array<{ sessionId?: string; sessionName?: string; sessionEndedAt?: string; accuracyRate?: number; studentCount?: number }>>([]);
+
+  // When stats are loaded, populate recentSessions from stats.recentSessions
+  useEffect(() => {
+    if (stats?.recentSessions) {
+      // Map to local display shape
+      const mapped = stats.recentSessions.map((s: any) => ({
+        sessionId: s.sessionId,
+        sessionName: s.sessionName,
+        sessionEndedAt: s.sessionEndedAt,
+        accuracyRate: s.accuracyRate,
+        // backend may include studentResultsCount; if not, we'll fetch it below
+        studentCount: s.studentResultsCount ?? undefined,
+      }));
+      setRecentSessions(mapped.slice(0, 5));
+
+      // If any entries are missing studentCount, fetch the session report for those
+      const missing = mapped.filter((m: any) => m.studentCount == null).map((m: any) => m.sessionId).filter(Boolean);
+      if (missing.length > 0) {
+        (async () => {
+          try {
+            const promises = missing.map((sid: any) => apiService.getReportForSession(sid));
+            const responses = await Promise.all(promises);
+            const updates: Record<string, number> = {};
+            responses.forEach((r: any) => {
+              const rep = r.data;
+              if (rep && Array.isArray(rep.studentResults)) {
+                updates[rep.sessionId || rep.session_id || ''] = rep.studentResults.length;
+              }
+            });
+
+            setRecentSessions(prev => prev.map(entry => ({
+              ...entry,
+              studentCount: entry.studentCount ?? updates[entry.sessionId as string] ?? entry.studentCount
+            })));
+          } catch (err) {
+            console.error('Failed to fetch missing session reports', err);
+          }
+        })();
+      }
+    }
+  }, [stats]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onSessionEndedHost = async (data: any) => {
+      try {
+        const sessionId = data?.sessionId || data?.session_id || data?.id;
+        if (!sessionId) return;
+
+        // Fetch the final session report for details
+        const res = await apiService.getReportForSession(sessionId);
+        const report = res.data;
+
+        // compute average accuracy and student count
+        const studentResults = Array.isArray(report.studentResults) ? report.studentResults : [];
+        const studentCount = studentResults.length;
+        const avgAccuracy = studentCount ? Number((studentResults.reduce((sum: number, r: any) => sum + (r.accuracy ?? 0), 0) / studentCount).toFixed(2)) : 0;
+
+        const newEntry = {
+          sessionId: report.sessionId || sessionId,
+          sessionName: report.sessionName || `Session ${String(sessionId).slice(-4)}`,
+          sessionEndedAt: report.sessionEndedAt || new Date().toISOString(),
+          accuracyRate: avgAccuracy,
+          studentCount,
+        };
+
+        setRecentSessions(prev => [newEntry, ...prev].slice(0, 5));
+      } catch (err) {
+        console.error('Failed to fetch session report after session-ended-host', err);
+      }
+    };
+
+    socket.on('session-ended-host', onSessionEndedHost);
+
+    return () => {
+      socket.off('session-ended-host', onSessionEndedHost);
+    };
+  }, [socket]);
+
+  // Monitor socket connection status and update System Active tag
+  useEffect(() => {
+    // If socket is not created yet, show connecting and fallback to disconnected after a timeout
+    if (!socket) {
+      setConnStatus('connecting');
+      const to = setTimeout(() => setConnStatus('disconnected'), 5000);
+      return () => clearTimeout(to);
+    }
+
+    // At this point socket exists
+    setConnStatus(socket.connected ? 'active' : 'connecting');
+
+    const handleConnect = () => setConnStatus('active');
+    const handleDisconnect = () => setConnStatus('disconnected');
+    const handleConnectError = () => setConnStatus('disconnected');
+    const handleReconnectAttempt = () => setConnStatus('connecting');
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
+    socket.on('reconnect_attempt', handleReconnectAttempt);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
+      socket.off('reconnect_attempt', handleReconnectAttempt);
+    };
+  }, [socket]);
 
   const quickActions = [
     {
@@ -103,13 +252,13 @@ const HostDashboard = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Classic Dashboard</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Host Dashboard</h1>
                 <p className="text-gray-400 text-sm sm:text-base">Welcome back! Here's your polling system overview.</p>
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 {/* System Active Tag */}
-                <div className="bg-green-500/20 text-green-400 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium w-full sm:w-auto text-center">
-                  System Active
+                <div className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium w-full sm:w-auto text-center ${connStatus === 'active' ? 'bg-green-500/20 text-green-400' : connStatus === 'connecting' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {connStatus === 'active' ? 'System Active' : connStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
                 </div>
                 {/* Switch to Student Button */}
                 <button
@@ -121,8 +270,8 @@ const HostDashboard = () => {
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Stats Cards: show 5 in a row on large screens; reduce padding so they fit */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {statsCards.map((card, index) => (
                 <motion.div
                   key={card.title}
@@ -130,17 +279,17 @@ const HostDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index }}
                 >
-                  <GlassCard className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-12 h-12 bg-gradient-to-r ${card.color} rounded-lg flex items-center justify-center`}>
-                        <card.icon className="w-6 h-6 text-white" />
+                  <GlassCard className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-10 h-10 bg-gradient-to-r ${card.color} rounded-lg flex items-center justify-center`}>
+                        <card.icon className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-white">{card.value}</div>
-                        <div className="text-sm text-green-400">{card.change}</div>
+                        <div className="text-xl font-bold text-white">{card.value}</div>
+                        <div className="text-xs text-green-400">{card.change}</div>
                       </div>
                     </div>
-                    <h3 className="text-gray-300 font-medium">{card.title}</h3>
+                    <h3 className="text-gray-300 text-sm font-medium">{card.title}</h3>
                   </GlassCard>
                 </motion.div>
               ))}
@@ -157,8 +306,13 @@ const HostDashboard = () => {
                 <GlassCard className="p-6">
                   <h3 className="text-xl font-bold text-white mb-4">Participation Trends</h3>
                   <div className="h-64 min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={participationData}>
+                    {loading ? (
+                      <div className="text-gray-400">Loading chart...</div>
+                    ) : error ? (
+                      <div className="text-red-400">{error}</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={participationData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="name" stroke="#9CA3AF" />
                         <YAxis stroke="#9CA3AF" />
@@ -177,37 +331,44 @@ const HostDashboard = () => {
                           strokeWidth={2}
                           dot={{ fill: '#8B5CF6', strokeWidth: 2 }}
                         />
-                      </LineChart>
-                    </ResponsiveContainer>
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </GlassCard>
               </motion.div>
 
-              {/* Confusion Analysis */}
+              {/* Recent Sessions Accuracy */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
               >
                 <GlassCard className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-4">Confusion Analysis</h3>
+                  <h3 className="text-xl font-bold text-white mb-4">Sessions Accuracy</h3>
                   <div className="h-64 min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={confusionData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="topic" stroke="#9CA3AF" />
-                        <YAxis stroke="#9CA3AF" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'rgba(17, 24, 39, 0.8)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '8px',
-                            color: '#fff'
-                          }}
-                        />
-                        <Bar dataKey="confusion" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    {loading ? (
+                      <div className="text-gray-400">Loading...</div>
+                    ) : error ? (
+                      <div className="text-red-400">{error}</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={recentSessionsData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="name" stroke="#9CA3AF" />
+                          <YAxis stroke="#9CA3AF" domain={[0, 100]} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '8px',
+                              color: '#fff'
+                            }}
+                          />
+                          <Bar dataKey="accuracy" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </GlassCard>
               </motion.div>
@@ -222,7 +383,7 @@ const HostDashboard = () => {
               <GlassCard className="p-6">
                 <h3 className="text-xl font-bold text-white mb-6">Quick Actions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {quickActions.map((action, index) => (
+                  {quickActions.map((action) => (
                     <motion.a
                       key={action.title}
                       href={action.href}
@@ -250,21 +411,19 @@ const HostDashboard = () => {
               <GlassCard className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Recent Activity</h3>
                 <div className="space-y-4">
-                  {[
-                    { action: 'New poll created', time: '2 minutes ago', user: 'AI System' },
-                    { action: 'Student joined session', time: '5 minutes ago', user: 'John Doe' },
-                    { action: 'Audio capture started', time: '12 minutes ago', user: 'Host' },
-                    { action: 'Question approved', time: '18 minutes ago', user: 'Host' },
-                    { action: 'Report generated', time: '25 minutes ago', user: 'System' },
-                  ].map((activity, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-2 gap-1">
-                      <div>
-                        <p className="text-white font-medium">{activity.action}</p>
-                        <p className="text-sm text-gray-400">{activity.user}</p>
+                  {recentSessions.length === 0 ? (
+                    <div className="text-gray-400">No recent sessions yet.</div>
+                  ) : (
+                    recentSessions.map((s, i) => (
+                      <div key={s.sessionId || i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-2 gap-1">
+                        <div>
+                          <p className="text-white font-medium">{s.sessionName}</p>
+                          <p className="text-sm text-gray-400">{(s.studentCount ?? 0)} participants • Accuracy: {s.accuracyRate != null ? `${s.accuracyRate}%` : '—'}</p>
+                        </div>
+                        <div className="text-sm text-gray-400">{s.sessionEndedAt ? new Date(s.sessionEndedAt).toLocaleString() : '-'}</div>
                       </div>
-                      <div className="text-sm text-gray-400">{activity.time}</div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </GlassCard>
             </motion.div>

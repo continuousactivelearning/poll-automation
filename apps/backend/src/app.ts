@@ -13,6 +13,7 @@ import reportRoutes from './web/routes/report.routes'; // New
 import transcriptRoutes from './web/routes/transcript.routes'; // New ASR transcripts
 import meetingsRoutes from './web/routes/meetings.routes'; // AI Questions & Meetings
 import segmentsRoutes from './routes/segments'; // New segments for transcript segmentation
+import statsRoutes from './web/routes/stats.routes';
 import { errorHandler } from './web/middlewares/error.middleware';
 // import pollRoutes from './web/routes/poll.routes';
 import path from 'path'; // <-- Import path module
@@ -88,6 +89,7 @@ app.use('/api/transcripts', transcriptRoutes); // ASR transcripts
 app.use('/api/meetings', meetingsRoutes); // AI Questions & Meetings
 app.use('/api/segments', segmentsRoutes); // Transcript segments
 app.use('/api/session-reports', sessionReportRoutes); // <-- NEW ROUTE
+app.use('/api/stats', statsRoutes); // <-- host/dashboard stats
 
 app.use(errorHandler);
 
