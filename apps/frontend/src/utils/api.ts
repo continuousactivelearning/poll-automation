@@ -32,13 +32,13 @@ const refreshToken = async () => {
 };
 
 // Request interceptor to add auth token
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+// api.interceptors.request.use((config) => {
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//         config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+// });
 
 // Response interceptor to handle token expiration and common errors
 api.interceptors.response.use(
@@ -48,7 +48,8 @@ api.interceptors.response.use(
     
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+        // Handle unauthorized access: clear token and redirect to login
+      localStorage.removeItem('token');
       try {
         const newToken = await refreshToken();
         originalRequest.headers.Authorization = `Bearer ${newToken}`;

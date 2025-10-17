@@ -140,7 +140,13 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    // const isMatch = await bcrypt.compare(currentPassword, user.password);
+    const storedHash = user.password as string | undefined;
+    if (!storedHash) {
+      res.status(400).json({ message: "Account does not have a password set." });
+      return;
+    }
+    const isMatch = await bcrypt.compare(currentPassword, storedHash);
     if (!isMatch) {
       res.status(401).json({ message: "Incorrect current password." });
       return;
@@ -168,7 +174,13 @@ export const deleteAccount = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // const isMatch = await bcrypt.compare(password, user.password);
+    const storedHash2 = user.password as string | undefined;
+    if (!storedHash2) {
+      res.status(400).json({ message: "Account does not have a password set." });
+      return;
+    }
+    const isMatch = await bcrypt.compare(password, storedHash2);
     if (!isMatch) {
       res.status(401).json({ message: "Incorrect password. Account deletion failed." });
       return;

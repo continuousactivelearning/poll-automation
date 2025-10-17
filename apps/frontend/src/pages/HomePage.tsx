@@ -1,26 +1,50 @@
 // apps/frontend/src/pages/HomePage.tsx
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, Rocket, Users, BarChart3, Mic, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const HomePage = () => {
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleCreatePoll = () => {
+    if (isAuthenticated) {
+      // User is already authenticated, redirect to host dashboard
+      navigate('/host');
+    } else {
+      // User not authenticated, go to login with redirect
+      navigate('/login?redirect=create-poll');
+    }
+  };
+
+  const handleJoinPoll = () => {
+    if (isAuthenticated) {
+      // User is already authenticated, redirect to student dashboard
+      navigate('/student');
+    } else {
+      // User not authenticated, go to login with redirect
+      navigate('/login?redirect=join-poll');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-800 via-dark-900 to-dark-800 text-white flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12 sm:py-16">
       {/* Join Meeting Button */}
       <div className="absolute top-6 right-8 z-30 flex flex-col gap-3 sm:flex-row sm:gap-3">
-        <Link
-          to="/login?redirect=create-poll"
+        <button
+          onClick={handleCreatePoll}
           className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-400 hover:from-green-600 hover:to-green-500 text-white font-semibold px-5 py-2 rounded-xl shadow-lg transition-all duration-200 text-sm sm:text-base"
         >
           Create Poll
-        </Link>
-        <Link
-          to="/login?redirect=join-poll"
+        </button>
+        <button
+          onClick={handleJoinPoll}
           className="inline-flex items-center gap-2 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-white font-semibold px-5 py-2 rounded-xl shadow-lg transition-all duration-200 text-sm sm:text-base"
         >
           Join Poll
-        </Link>
+        </button>
       </div>
       {/* Glowing Orbs Background */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary-500/20 blur-3xl rounded-full animate-pulse-slow" />

@@ -31,21 +31,23 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IUser extends Document {
   fullName: string;
   email: string;
-  password: string;
+  password?: string;
   role: "host" | "student"; // <-- Re-added this critical field
   avatar?: string;
   bio?: string;
   passwordReset?: { token?: string; expires?: Date; used?: boolean };
+  googleId?: string;
 }
 
 export const userSchema = new Schema<IUser>({
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { type: String, required: false },
   role: { type: String, enum: ["host", "student"], default: "student" }, // <-- Re-added this
   avatar: { type: String, default: "https://www.gravatar.com/avatar/?d=mp" },
   bio: { type: String, default: "", maxLength: 200 },
   passwordReset: { /* ... */ },
+   googleId: { type: String, required: false, index: true },
 });
 
 export const User = mongoose.model<IUser>("User", userSchema);

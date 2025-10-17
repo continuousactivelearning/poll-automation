@@ -173,7 +173,21 @@ const LoginPage = () => {
             </motion.button>
           </form>
          
-
+     {/* Social Login */}
+            <div className="mt-4 sm:mt-6 text-center space-y-2">
+              <button
+                onClick={() => {
+                  // Use a full navigation so backend redirects work correctly for OAuth.
+                  // Pass redirect parameter to determine user role (create-poll = host, join-poll = student)
+                  const redirectParam = redirect ? `?redirect=${redirect}` : '';
+                  window.location.href = `/api/auth/google${redirectParam}`;
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/6 hover:bg-white/10 rounded-lg text-sm text-white border border-white/10"
+              >
+                <img src="/google-logo.svg" alt="Google" className="w-4 h-4" />
+                Continue with Google
+              </button>
+            </div>
 
           {/* Links */}
           <div className="mt-4 sm:mt-6 text-center space-y-2">

@@ -5,6 +5,7 @@ import { Users, Target, TrendingUp, Clock, Brain, Mic, Trophy, FileText } from '
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import GlassCard from '../components/GlassCard';
+import ConnectionStatus from '../components/ConnectionStatus';
 import { apiService } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -256,10 +257,12 @@ const HostDashboard = () => {
                 <p className="text-gray-400 text-sm sm:text-base">Welcome back! Here's your polling system overview.</p>
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                {/* System Active Tag */}
+                {/* System Active Tag
                 <div className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium w-full sm:w-auto text-center ${connStatus === 'active' ? 'bg-green-500/20 text-green-400' : connStatus === 'connecting' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
                   {connStatus === 'active' ? 'System Active' : connStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
-                </div>
+                </div> */}
+                  {/* Connection status indicator (replaces static System Active tag) */}
+                <ConnectionStatus showDebug={false} pingIntervalMs={8000} />
                 {/* Switch to Student Button */}
                 <button
                   onClick={() => navigate('/student')}

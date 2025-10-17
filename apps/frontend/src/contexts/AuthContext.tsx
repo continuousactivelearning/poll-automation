@@ -153,6 +153,7 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<any>;
   resetPassword: (token: string, password: string) => Promise<any>;
   updateUser: (updatedData: Partial<User>) => void;
+    setAuthToken: (token: string) => void;
   // --- NEW PROPERTIES FOR SESSION MANAGEMENT ---
   activeRoom: ActiveRoom | null;
   isCreatingRoom: boolean;
@@ -387,12 +388,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // --- `updateUser` and other auth functions are unchanged ---
  const updateUser = (updatedData: Partial<User>) => {
     setUser((currentUser) => {
-      if (!currentUser) return null;
-      const newUser = { ...currentUser, ...updatedData };
-      localStorage.setItem("user", JSON.stringify(newUser));
-      return newUser;
+      // if (!currentUser) return null;
+      // const newUser = { ...currentUser, ...updatedData };
+      // localStorage.setItem("user", JSON.stringify(newUser));
+      // return newUser;
+       const newUser = currentUser ? { ...currentUser, ...updatedData } : (updatedData as User);
+      try {
+        localStorage.setItem("user", JSON.stringify(newUser));
+      } catch {
+        // ignore storage errors
+      }
+      return newUser as User;
     });
   };  
+   const setAuthToken = (newToken: string) => {
+    setToken(newToken);
+    try {
+      localStorage.setItem('token', newToken);
+    } catch {
+      // ignore
+    }
+  };
  // --- REFACTORED: All auth functions now use apiService ---
 
   const login = async (email: string, password: string) => {
@@ -539,6 +555,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         forgotPassword,
         resetPassword,
         updateUser,
+                setAuthToken,
         isAuthenticated: !!user,
         isLoading,
         // --- NEW VALUES EXPOSED BY THE CONTEXT ---
