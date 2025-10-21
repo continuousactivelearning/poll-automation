@@ -8,20 +8,16 @@ import { QuestionLaunchService } from '../../services/questionLaunchService';
 import ServiceManager from '../../services/serviceManager';
 import { Types } from 'mongoose';
 import Audio from '../models/audio.model'; // Import Audio model for live transcripts
+import { IUser } from '../models/user.model';
 
-// Import the type definitions for req.user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        role: 'host' | 'student';
-        iat?: number;
-        exp?: number;
-      };
-    }
-  }
+// Helper function to get user ID from req.user (handles both JWT and Passport user objects)
+function getUserId(user: any): string | undefined {
+  if (!user) return undefined;
+  // For JWT tokens (has .id property)
+  if (user.id) return user.id;
+  // For MongoDB documents (has ._id property)
+  if (user._id) return user._id.toString();
+  return undefined;
 }
 
 // Interface for transcript response
@@ -54,7 +50,7 @@ interface TranscriptResponse {
 export const getMeetingTranscripts = async (req: Request, res: Response) => {
   try {
     const { id: meetingId } = req.params;
-    const userId = req.user?.id;
+    const userId = getUserId(req.user);
 
     console.log(`📝 [MEETINGS API] Fetching LIVE transcripts for meeting: ${meetingId}`);
 
@@ -215,7 +211,7 @@ export const getMeetingTranscripts = async (req: Request, res: Response) => {
 export const generateQuestions = async (req: Request, res: Response) => {
   try {
     const { id: meetingId } = req.params;
-    const userId = req.user?.id;
+    const userId = getUserId(req.user);
     const {
       numQuestions = 5,
       types = ['multiple_choice'],
@@ -359,7 +355,7 @@ export const generateQuestions = async (req: Request, res: Response) => {
 export const getMeetingQuestions = async (req: Request, res: Response) => {
   try {
     const { id: meetingId } = req.params;
-    const userId = req.user?.id;
+    const userId = getUserId(req.user);
     const { status } = req.query;
 
     console.log(`📋 [GET QUESTIONS] Fetching questions for meeting: ${meetingId}`);
@@ -414,7 +410,7 @@ export const getMeetingQuestions = async (req: Request, res: Response) => {
 export const updateQuestion = async (req: Request, res: Response) => {
   try {
     const { id: meetingId, questionId } = req.params;
-    const userId = req.user?.id;
+    const userId = getUserId(req.user);
     const updates = req.body;
 
     console.log(`✏️ [UPDATE QUESTION] Updating question ${questionId} in meeting: ${meetingId}`);
@@ -479,7 +475,7 @@ export const updateQuestion = async (req: Request, res: Response) => {
 export const publishQuestions = async (req: Request, res: Response) => {
   try {
     const { id: meetingId } = req.params;
-    const userId = req.user?.id;
+    const userId = getUserId(req.user);
     const { questionSetId, questionIds } = req.body;
 
     console.log(`📢 [PUBLISH QUESTIONS] Publishing questions for meeting: ${meetingId}`);
@@ -553,7 +549,7 @@ export const publishQuestions = async (req: Request, res: Response) => {
 export const deleteMeetingQuestions = async (req: Request, res: Response) => {
   try {
     const { id: meetingId } = req.params;
-    const userId = req.user?.id;
+    const userId = getUserId(req.user);
     const { questionSetId } = req.body;
 
     console.log(`🗑️ [DELETE QUESTIONS] Deleting questions for meeting: ${meetingId}`);
@@ -592,7 +588,7 @@ export const launchQuestion = async (req: Request, res: Response) => {
   try {
     const { id: meetingId, questionId } = req.params;
     const { timerDuration = 30 } = req.body; // Allow custom timer duration
-    const userId = req.user?.id;
+    const userId = getUserId(req.user);
 
     console.log(`🚀 [LAUNCH QUESTION] Launching question ${questionId} for meeting: ${meetingId}`);
     console.log(`⏱️ [LAUNCH QUESTION] Timer duration: ${timerDuration} seconds`);

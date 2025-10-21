@@ -65,7 +65,10 @@ export const inviteStudents = async (req: Request, res: Response) => {
         if (emailList.length === 0) return res.status(400).json({ message: 'No valid student emails found.' });
         
         const host = await User.findById(room.hostId);
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
+        const isProduction = process.env.NODE_ENV === 'production';
+        const frontendUrl = isProduction 
+          ? (process.env.FRONTEND_URL_PROD || process.env.FRONTEND_URL_PRODUCTION) 
+          : (process.env.FRONTEND_URL_LOCAL || 'http://localhost:5174');
 
         // --- NEW LOGIC: Loop and check each user ---
         for (const email of emailList) {

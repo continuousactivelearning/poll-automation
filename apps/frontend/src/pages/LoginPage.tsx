@@ -172,22 +172,69 @@ const LoginPage = () => {
               )}
             </motion.button>
           </form>
-         
-     {/* Social Login */}
+          {/* Social Login */}
             <div className="mt-4 sm:mt-6 text-center space-y-2">
               <button
                 onClick={() => {
-                  // Use a full navigation so backend redirects work correctly for OAuth.
-                  // Pass redirect parameter to determine user role (create-poll = host, join-poll = student)
-                  const redirectParam = redirect ? `?redirect=${redirect}` : '';
-                  window.location.href = `/api/auth/google${redirectParam}`;
+                  // Use full backend URL for OAuth - environment aware
+                  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+                  const backendUrl = API_BASE.replace('/api', ''); // Remove /api suffix to get base URL
+                  
+                  // Capture user intent from URL parameters
+                  const urlParams = new URLSearchParams(window.location.search);
+                  const redirectParam = urlParams.get('redirect');
+                  let intent = 'default';
+                  
+                  // Map redirect parameters to intents
+                  if (redirectParam === 'create-poll') {
+                    intent = 'create-poll';
+                  } else if (redirectParam === 'join-poll') {
+                    intent = 'join-poll';
+                  }
+                  
+                  // Construct OAuth URL with intent
+                  const oauthUrl = `${backendUrl}/api/auth/google?intent=${intent}`;
+                  console.log('🎯 Starting Google OAuth with intent:', intent);
+                  
+                  window.location.href = oauthUrl;
                 }}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/6 hover:bg-white/10 rounded-lg text-sm text-white border border-white/10"
               >
                 <img src="/google-logo.svg" alt="Google" className="w-4 h-4" />
                 Continue with Google
               </button>
+              
+              <button
+                onClick={() => {
+                  // Use full backend URL for Zoho OAuth - environment aware
+                  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+                  const backendUrl = API_BASE.replace('/api', ''); // Remove /api suffix to get base URL
+                  
+                  // Capture user intent from URL parameters
+                  const urlParams = new URLSearchParams(window.location.search);
+                  const redirectParam = urlParams.get('redirect');
+                  let intent = 'default';
+                  
+                  // Map redirect parameters to intents
+                  if (redirectParam === 'create-poll') {
+                    intent = 'create-poll';
+                  } else if (redirectParam === 'join-poll') {
+                    intent = 'join-poll';
+                  }
+                  
+                  // Construct Zoho OAuth URL with intent
+                  const oauthUrl = `${backendUrl}/api/auth/zoho?intent=${intent}`;
+                  console.log('🎯 Starting Zoho OAuth with intent:', intent);
+                  
+                  window.location.href = oauthUrl;
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/6 hover:bg-white/10 rounded-lg text-sm text-white border border-white/10"
+              >
+                <div className="w-4 h-4 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">Z</div>
+                Continue with Zoho
+              </button>
             </div>
+
 
           {/* Links */}
           <div className="mt-4 sm:mt-6 text-center space-y-2">
