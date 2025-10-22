@@ -19,9 +19,9 @@ interface RoomInfo {
 
 const JoinPollPage: React.FC = () => {
     const navigate = useNavigate();
-    const location = useLocation(); // Get access to the URL's query parameters
+      const location = useLocation(); // Get access to the URL's query parameters
 
-    const { socket, user, isLoading } = useAuth(); // Get isLoading to avoid premature auth checks
+    const { socket, user } = useAuth(); // Get the shared socket from context
 
     const [roomCode, setRoomCode] = useState('');
     const [isValidating, setIsValidating] = useState(false);
@@ -31,70 +31,25 @@ const JoinPollPage: React.FC = () => {
     const [authCheckComplete, setAuthCheckComplete] = useState(false);
     
     // Check authentication - students need to be logged in to join polls
-    // Wait for AuthContext to finish loading before making any authentication decisions
+    // Wait a bit for Google OAuth callback to complete authentication
     useEffect(() => {
         const checkAuth = () => {
-            console.log('🔍 JoinPollPage: Checking authentication...');
-            console.log('🌐 Browser:', navigator.userAgent);
-            console.log('🔄 AuthContext isLoading:', isLoading);
-            
-            // CRITICAL: Don't make auth decisions while AuthContext is still loading
-            if (isLoading) {
-                console.log('⏳ AuthContext still loading, waiting...');
-                return;
-            }
-            
-            // CRITICAL FIX: Check localStorage directly to avoid race condition with AuthContext
-            let storedToken = null;
-            let storedUser = null;
-            
-            try {
-                storedToken = localStorage.getItem('token');
-                storedUser = localStorage.getItem('user');
-                console.log('✅ localStorage accessible, token:', storedToken ? 'EXISTS' : 'MISSING');
-                console.log('✅ localStorage accessible, user:', storedUser ? 'EXISTS' : 'MISSING');
-            } catch (e) {
-                console.error('❌ localStorage NOT accessible:', e);
-                toast.error('localStorage is blocked. Please check your browser privacy settings.');
-            }
-            
-            console.log('🔍 user from context:', user ? 'EXISTS' : 'NULL');
-            
-            if (!user && !storedToken && !storedUser) {
-                console.log('⏳ No authentication found, waiting 3 seconds...');
-                // Wait longer for OAuth authentication to complete (especially after redirect from OAuth callback)
+            if (!user) {
+                // Wait a bit longer for Google OAuth authentication to complete
                 setTimeout(() => {
-                    // Re-check both context and localStorage
-                    let tokenStillMissing = true;
-                    let userStillMissing = !user;
-                    
-                    try {
-                        tokenStillMissing = !localStorage.getItem('token');
-                    } catch (e) {
-                        console.error('❌ localStorage check failed:', e);
-                    }
-                    
-                    console.log('🔍 After 3 seconds - token:', tokenStillMissing ? 'MISSING' : 'EXISTS');
-                    console.log('🔍 After 3 seconds - user:', userStillMissing ? 'MISSING' : 'EXISTS');
-                    
-                    if (tokenStillMissing && userStillMissing) {
-                        console.log('❌ Still not authenticated, redirecting to login...');
+                    if (!user) {
                         toast.error("Please log in first to join polls.");
                         navigate('/login?redirect=join-poll');
-                    } else {
-                        console.log('✅ Authentication confirmed!');
                     }
                     setAuthCheckComplete(true);
-                }, 3000); // Increased to 3 seconds to allow OAuth callback to complete
+                }, 2000); // Wait 2 seconds for auth to complete
             } else {
-                // User is authenticated (either from context or localStorage)
-                console.log('✅ Already authenticated, proceeding...');
                 setAuthCheckComplete(true);
             }
         };
         
         checkAuth();
-    }, [user, isLoading, navigate]); // Added isLoading to dependency array
+    }, [user, navigate]);
     
  // --- NEW useEffect TO READ FROM URL ---
   useEffect(() => {
@@ -275,7 +230,7 @@ const JoinPollPage: React.FC = () => {
 
     return (
         <>
-            {(isLoading || !authCheckComplete) ? (
+            {!authCheckComplete ? (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -283,7 +238,7 @@ const JoinPollPage: React.FC = () => {
                 >
                     <div className="text-white">
                         <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p>{isLoading ? 'Loading authentication...' : 'Checking authentication...'}</p>
+                        <p>Checking authentication...</p>
                     </div>
                 </motion.div>
             ) : (

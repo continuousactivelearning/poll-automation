@@ -32,27 +32,20 @@ router.get('/api/auth/zoho', (req: Request, res: Response) => {
   // Create state parameter for intent tracking
   const state = intent ? btoa(JSON.stringify({ intent, timestamp: Date.now() })) : 'default';
   
-  // Build Zoho OAuth authorization URL manually
+  // Build Zoho OAuth authorization URL manually (using .in domain for India region)
   const clientId = process.env.ZOHO_CLIENT_ID;
   const redirectUri = getZohoRedirectUri(); // Use environment-specific redirect URI
   const scope = 'AaaServer.profile.READ'; // Correct scope for user profile access
   
-  // Use the same domain consistently - .com is the global domain
-  // If your Zoho account is in a specific region (like .in for India, .eu for Europe),
-  // update both here and in the callback to match your Zoho account region
-  const zohoAccountsDomain = process.env.ZOHO_ACCOUNTS_DOMAIN || 'https://accounts.zoho.com';
-  
-  console.log('🌍 Using Zoho accounts domain:', zohoAccountsDomain);
   console.log('🌍 Using Zoho redirect URI:', redirectUri);
   
-  const authUrl = `${zohoAccountsDomain}/oauth/v2/auth?` +
+  const authUrl = `https://accounts.zoho.in/oauth/v2/auth?` +
     `response_type=code&` +
     `client_id=${clientId}&` +
     `scope=${encodeURIComponent(scope)}&` +
     `redirect_uri=${encodeURIComponent(redirectUri)}&` +
     `state=${encodeURIComponent(state)}&` +
-    `access_type=offline&` +
-    `prompt=consent`; // Force consent screen to ensure proper authorization
+    `access_type=offline`;
   
   console.log('🔗 Redirecting to Zoho OAuth URL:', authUrl);
   res.redirect(authUrl);
@@ -60,16 +53,11 @@ router.get('/api/auth/zoho', (req: Request, res: Response) => {
 
 // Manual Zoho OAuth callback route (bypassing Passport due to token exchange issues)
 router.get('/oauth/callback', async (req: Request, res: Response) => {
-  console.log('🔍 ===== ZOHO OAUTH CALLBACK STARTED =====');
-  console.log('🔍 Full URL:', req.url);
-  console.log('🔍 Query params:', JSON.stringify(req.query, null, 2));
-  console.log('🔍 Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('🔍 Zoho callback received with query params:', req.query);
   
   const code = req.query.code as string;
   const state = req.query.state as string;
   const error = req.query.error as string;
-
-  console.log('🔍 Extracted values:', { code: code ? 'EXISTS' : 'MISSING', state, error });
 
   if (error) {
     console.error('❌ Zoho OAuth error:', error);
@@ -85,12 +73,9 @@ router.get('/oauth/callback', async (req: Request, res: Response) => {
     // Step 1: Exchange authorization code for access token
     console.log('🔄 Exchanging authorization code for access token...');
     
-    // IMPORTANT: Use the same Zoho accounts domain that was used for initiation
-    // This MUST match the domain in the authorization URL above
-    // Common domains: .com (Global), .in (India), .eu (Europe), .com.au (Australia)
-    const zohoAccountsDomain = process.env.ZOHO_ACCOUNTS_DOMAIN || 'https://accounts.zoho.com';
-    const accountsServer = req.query['accounts-server'] as string || zohoAccountsDomain;
-    console.log('🌍 Using Zoho accounts server for token exchange:', accountsServer);
+    // Use the correct accounts server based on the callback location
+    const accountsServer = req.query['accounts-server'] as string || 'https://accounts.zoho.com';
+    console.log('🌍 Using Zoho accounts server:', accountsServer);
     
     const tokenData = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -204,40 +189,24 @@ router.get('/oauth/callback', async (req: Request, res: Response) => {
     }
 
     // Step 5: Generate JWT token and redirect
-    console.log('🎟️ Generating JWT token for user:', user.email);
     const token = signToken({ 
       id: (user._id as any).toString(), 
       role: user.role,
       email: user.email 
     });
-    console.log('✅ JWT token generated, length:', token.length);
 
     const frontendUrl = getFrontendUrl();
-    // Use EXACT same redirect URL pattern as Google Auth for consistency
-    // This ensures frontend callback component handles both providers identically
-    const redirectUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(token)}&provider=zoho&intent=${intent}`;
+    const redirectUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(token)}&google_auth=success&intent=${intent}&provider=zoho`;
     
-    console.log('🔄 ===== ZOHO CALLBACK SUCCESS =====');
-    console.log('🔄 Frontend URL:', frontendUrl);
-    console.log('🔄 Full redirect URL:', redirectUrl);
-    console.log('🔄 Token (first 50 chars):', token.substring(0, 50) + '...');
-    console.log('🔄 Provider: zoho');
-    console.log('🔄 Intent:', intent);
-    console.log('🔄 User:', user.email, 'Role:', user.role);
-    console.log('🔄 ===== REDIRECTING TO FRONTEND =====');
-    
+    console.log('🔄 Redirecting to frontend callback:', redirectUrl);
     res.redirect(redirectUrl);
 
   } catch (error: any) {
-    console.error('❌ ===== ZOHO OAuth CALLBACK ERROR =====');
-    console.error('❌ Error message:', error.message);
-    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Zoho OAuth callback error:', error.message);
     if (error.response) {
-      console.error('❌ Zoho API Error Response:', JSON.stringify(error.response.data, null, 2));
+      console.error('❌ Zoho API Error Response:', error.response.data);
       console.error('❌ Zoho API Error Status:', error.response.status);
-      console.error('❌ Zoho API Error Headers:', JSON.stringify(error.response.headers, null, 2));
     }
-    console.error('❌ ===== REDIRECTING TO LOGIN WITH ERROR =====');
     return res.redirect(`${getFrontendUrl()}/login?error=auth_failed&details=${encodeURIComponent(error.message)}`);
   }
 });

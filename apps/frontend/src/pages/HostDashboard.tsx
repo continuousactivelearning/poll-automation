@@ -5,10 +5,9 @@ import { Users, Target, TrendingUp, Clock, Brain, Mic, Trophy, FileText } from '
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import GlassCard from '../components/GlassCard';
-import ConnectionStatus from '../components/ConnectionStatus';
 import { apiService } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
-
+import ConnectionStatus from '../components/ConnectionStatus';
 const HostDashboard = () => {
   const navigate = useNavigate();
 

@@ -51,64 +51,22 @@ class ValidationError extends Error {
 // --- Get Profile ---
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("🔍 [GET PROFILE] Starting profile fetch");
-    console.log("📋 [GET PROFILE] Headers received:", {
-      authorization: req.headers.authorization ? `Present (${req.headers.authorization.substring(0, 30)}...)` : "Missing",
-      origin: req.headers.origin,
-      referer: req.headers.referer,
-      userAgent: req.headers['user-agent']
-    });
-
-    const authHeader = req.headers.authorization || "";
-    const token = authHeader.split(" ")[1] || "";
-    
-    console.log("🔑 [GET PROFILE] Token details:", {
-      headerPresent: !!authHeader,
-      tokenExtracted: !!token,
-      tokenLength: token.length,
-      tokenPrefix: token.substring(0, 30)
-    });
-
-    if (!token) {
-      console.log("❌ [GET PROFILE] No token provided");
-      throw new ValidationError("Unauthorized - No token provided");
+    const jwtUser = extractIdFromToken(
+      req.headers.authorization?.split(" ")[1] || ""
+    );
+    if (!jwtUser) {
+      throw new ValidationError("Unauthorized");
     }
-
-    const jwtUser = extractIdFromToken(token);
-    console.log("👤 [GET PROFILE] JWT decoded:", {
-      jwtUserExists: !!jwtUser,
-      userId: jwtUser?.id
-    });
-
-    if (!jwtUser || !jwtUser.id) {
-      console.log("❌ [GET PROFILE] Invalid token - no user ID in JWT");
-      throw new ValidationError("Unauthorized - Invalid token");
-    }
-
     const user = await User.findById(jwtUser.id);
-    console.log("🔍 [GET PROFILE] Database lookup:", {
-      userFound: !!user,
-      userId: jwtUser.id
-    });
-
     if (!user) {
-      console.log("❌ [GET PROFILE] User not found in database");
       throw new ValidationError("User not found");
     }
-
-    console.log("✅ [GET PROFILE] Profile fetch successful:", {
-      userId: user._id,
-      email: user.email,
-      role: user.role
-    });
-
     res.json(user);
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.log("⚠️ [GET PROFILE] Validation error:", error.message);
       res.status(400).json({ message: error.message });
     } else {
-      console.error("💥 [GET PROFILE] Unexpected error:", error);
+      console.error(error);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }

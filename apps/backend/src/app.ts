@@ -26,7 +26,6 @@ import saveQuestionsRouter from './web/routes/save_questions';
 import pollConfigRoutes from './web/routes/poll.routes';
 import sessionReportRoutes from './web/routes/sessionReport.routes'; // <-- NEW IMPORT
 import zohoRootRoutes from './web/routes/zoho-root.routes'; // Zoho OAuth root routes
-import testZohoRoutes from './web/routes/test-zoho.routes'; // Test routes for Zoho OAuth diagnostics
 import { configureGoogleStrategy, configureZohoStrategy } from './config/passport'; // <-- NEW IMPORT
 
 dotenv.config();
@@ -83,30 +82,21 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    console.log("🌐 [CORS] Request from origin:", origin || "NO ORIGIN");
-    console.log("🌐 [CORS] Allowed origins:", allowedOrigins);
-    
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log("✅ [CORS] Allowing request with no origin");
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true);
     
     // Check if origin is in allowed list
     if (allowedOrigins.some(allowedOrigin => 
       allowedOrigin && (origin === allowedOrigin || origin.includes(allowedOrigin))
     )) {
-      console.log("✅ [CORS] Origin allowed:", origin);
       return callback(null, true);
     }
     
     // For development, allow any localhost
     if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
-      console.log("✅ [CORS] Allowing localhost in development:", origin);
       return callback(null, true);
     }
     
-    console.log("❌ [CORS] Origin not allowed:", origin);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true
@@ -176,12 +166,6 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Zoho OAuth root routes (must be before /api/auth to match Zoho app config)
 app.use('/', zohoRootRoutes);
-
-// Test routes for OAuth diagnostics (development only)
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/api/test', testZohoRoutes);
-  console.log('🧪 Test routes enabled at /api/test/zoho-config and /api/test/zoho-oauth-url');
-}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

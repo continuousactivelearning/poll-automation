@@ -9,7 +9,6 @@ import LoadingScreen from './components/LoadingScreen';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import HostDashboard from './pages/HostDashboard'
 import StudentDashboard from './pages/StudentDashboard';
 import AudioCapture from './pages/AudioCapture';
@@ -25,6 +24,8 @@ import ContactUs from './pages/ContactUs';
 import ChangePassword from './components/student/ChangePassword';
 import GuestPage from './pages/guest/GuestPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+
+import GoogleAuthCallback from './pages/GoogleAuthCallback';
 
 
 // Student dashboard section imports
@@ -50,9 +51,9 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
                 <Route path="/contactUs" element={<ContactUs />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 

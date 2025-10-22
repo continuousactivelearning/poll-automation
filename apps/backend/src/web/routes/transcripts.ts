@@ -1,8 +1,7 @@
 // backend/web/routes/transcripts.ts
 import { Router } from 'express';
 
- let transcriptsRouter=Router();
-//const transcriptsRouter=Router();
+let transcriptsRouter=Router();
 
 let inMemoryTranscripts: any = {}; 
 

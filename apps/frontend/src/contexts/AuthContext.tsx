@@ -153,7 +153,7 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<any>;
   resetPassword: (token: string, password: string) => Promise<any>;
   updateUser: (updatedData: Partial<User>) => void;
-    setAuthToken: (token: string) => void;
+  setAuthToken: (token: string) => void;
   // --- NEW PROPERTIES FOR SESSION MANAGEMENT ---
   activeRoom: ActiveRoom | null;
   isCreatingRoom: boolean;
@@ -392,7 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // const newUser = { ...currentUser, ...updatedData };
       // localStorage.setItem("user", JSON.stringify(newUser));
       // return newUser;
-       const newUser = currentUser ? { ...currentUser, ...updatedData } : (updatedData as User);
+         const newUser = currentUser ? { ...currentUser, ...updatedData } : (updatedData as User);
       try {
         localStorage.setItem("user", JSON.stringify(newUser));
       } catch {
@@ -555,7 +555,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         forgotPassword,
         resetPassword,
         updateUser,
-                setAuthToken,
+         setAuthToken,
         isAuthenticated: !!user,
         isLoading,
         // --- NEW VALUES EXPOSED BY THE CONTEXT ---

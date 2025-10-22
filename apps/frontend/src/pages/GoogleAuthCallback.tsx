@@ -70,13 +70,11 @@ const GoogleAuthCallback: React.FC = () => {
             
             setStatus('Sign-in successful! Redirecting...');
             
-            // CRITICAL FIX: Use full page reload instead of React Router navigation
-            // This ensures AuthContext properly initializes from localStorage in all browsers
+            // Wait longer to ensure authentication state is fully established
             setTimeout(() => {
               console.log('🔐 Authentication state before redirect:', { isAuthenticated, user: userData });
-              console.log('🔄 Using full page reload to ensure AuthContext initialization');
-              window.location.href = redirectPath;
-            }, 1000); // Reduced timeout since we're doing full page reload
+              navigate(redirectPath, { replace: true });
+            }, 1500);
             
           } else {
             console.error('Failed to fetch user profile:', res.status);

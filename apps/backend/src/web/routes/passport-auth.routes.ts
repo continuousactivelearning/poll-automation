@@ -76,8 +76,8 @@ router.get('/google/callback',
           redirectPath = user.role === 'student' ? '/student' : '/host';
       }
 
-      // Construct redirect URL to GoogleAuthCallback with intent and provider
-      const redirectUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(token)}&provider=google&intent=${intent}`;
+      // Construct redirect URL to GoogleAuthCallback with intent
+      const redirectUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(token)}&google_auth=success&intent=${intent}`;
       
       console.log('🔄 Redirecting to GoogleAuthCallback with intent:', redirectUrl);
       res.redirect(redirectUrl);
