@@ -1,5 +1,5 @@
 // apps/frontend/src/pages/Leaderboard.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart, Clock, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
@@ -7,7 +7,6 @@ import GlassCard from '../components/GlassCard';
 import { apiService } from '../utils/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
 import LeaderboardView from '../components/common/LeaderboardView'; // <-- IMPORT REUSABLE COMPONENT
 
 // Types for data handling
@@ -25,8 +24,6 @@ interface DetailedReport {
 
 const Leaderboard = () => {
   const { socket, user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const [reports, setReports] = useState<SessionReportSummary[]>([]);
   const [selectedReport, setSelectedReport] = useState<DetailedReport | null>(null);

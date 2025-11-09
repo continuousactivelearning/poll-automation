@@ -20,6 +20,7 @@ import * as XLSX from "xlsx"
 import { apiService } from '../utils/api'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+import { useSessionManagement } from '../hooks/useSessionManagement'
 
 interface StudentInvite {
   name: string
@@ -28,14 +29,15 @@ interface StudentInvite {
 
 const CreatePollPage: React.FC = () => {
   // Use AuthContext for room management
-  const { activeRoom, createRoom, destroyRoom, isCreatingRoom } = useAuth();
+  const { activeRoom, createRoom, isCreatingRoom } = useAuth();
+  // Enhanced session management with audio cleanup
+  const { endSessionWithAudioReset } = useSessionManagement();
   const navigate = useNavigate();
   
   // Local state for CSV functionality
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [students, setStudents] = useState<StudentInvite[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [isSendingInvites, setIsSendingInvites] = useState(false)
   const [invitesSent, setInvitesSent] = useState(false)
   const [roomName, setRoomName] = useState("")
@@ -53,7 +55,6 @@ const CreatePollPage: React.FC = () => {
       return
     }
 
-    setIsLoading(true)
     setErrors({})
 
     try {
@@ -86,8 +87,6 @@ const CreatePollPage: React.FC = () => {
       setErrors({ csv: error instanceof Error ? error.message : "Failed to parse the file" })
       setStudents([])
       setCsvFile(null)
-    } finally {
-      setIsLoading(false)
     }
   }, [])
 
@@ -142,10 +141,13 @@ const CreatePollPage: React.FC = () => {
     }
   };
 
-  const handleDestroySession = () => {
-      destroyRoom(() => navigate('/host/leaderboard'));
-      setRoomName('');
-      removeFile();
+  const handleDestroySession = async () => {
+      const success = await endSessionWithAudioReset(() => navigate('/host/leaderboard'));
+      if (success) {
+        setRoomName('');
+        removeFile();
+        console.log('✅ [CREATE_POLL] Session ended successfully with audio reset');
+      }
   }
 
   return (

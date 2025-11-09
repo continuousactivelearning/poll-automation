@@ -215,6 +215,40 @@ export const apiService = {
   exportTranscript: (meetingId: string) => api.get(`/transcripts/${meetingId}/export`, { responseType: 'blob' }),
   getTranscriptStats: (meetingId: string) => api.get(`/transcripts/${meetingId}/stats`),
   deleteTranscripts: (meetingId: string) => api.delete(`/transcripts/${meetingId}`),
+
+  // Timer Transcripts
+  saveTimerTranscript: (data: {
+    sessionId: string;
+    hostId: string;
+    roomId?: string;
+    startTime: Date;
+    endTime?: Date;
+    durationSelected: number;
+    combinedTranscript: string;
+    status: 'running' | 'completed' | 'stopped';
+    segmentCount: number;
+  }) => api.post('/timer-transcripts/save', data),
+  
+  generateTimerQuestions: (timerTranscriptId: string) => 
+    api.post('/timer-transcripts/generate-questions', { timerTranscriptId }),
+  
+  getTimerTranscriptsBySession: (sessionId: string, hostId?: string) => 
+    api.get(`/timer-transcripts/by-session/${sessionId}`, { params: { hostId } }),
+  
+  getTimerTranscriptById: (id: string) => 
+    api.get(`/timer-transcripts/${id}`),
+
+  // Get timer-based questions for a room/session
+  getTimerQuestions: (roomId: string) => 
+    api.get(`/timer-transcripts/questions/${roomId}`),
+  
+  // Get creative timer-based questions for a room/session (new enhanced questions)
+  getCreativeTimerQuestions: (roomId: string) => 
+    api.get(`/timer-transcripts/creative-questions/${roomId}`),
+  
+  // Get all timer transcripts with questions for a room
+  getTimerTranscriptsWithQuestions: (roomId: string) => 
+    api.get(`/timer-transcripts/with-questions/${roomId}`),
   
   // ... any other services you have ...
 };

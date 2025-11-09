@@ -1,5 +1,4 @@
 // apps/frontend/src/pages/HomePage.tsx
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, Rocket, Users, BarChart3, Mic, LayoutDashboard } from 'lucide-react';

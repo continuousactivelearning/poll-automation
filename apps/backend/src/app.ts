@@ -17,6 +17,8 @@ import reportRoutes from './web/routes/report.routes'; // New
 import transcriptRoutes from './web/routes/transcript.routes'; // New ASR transcripts
 import meetingsRoutes from './web/routes/meetings.routes'; // AI Questions & Meetings
 import segmentsRoutes from './routes/segments'; // New segments for transcript segmentation
+import questionsRoutes from './routes/questions'; // Timer-based question generation
+import timerTranscriptsRoutes from './routes/timer-transcripts'; // Timer-based transcript storage
 import statsRoutes from './web/routes/stats.routes';
 import { errorHandler } from './web/middlewares/error.middleware';
 // import pollRoutes from './web/routes/poll.routes';
@@ -175,6 +177,8 @@ app.use('/api/reports', reportRoutes); // New
 app.use('/api/transcripts', transcriptRoutes); // ASR transcripts
 app.use('/api/meetings', meetingsRoutes); // AI Questions & Meetings
 app.use('/api/segments', segmentsRoutes); // Transcript segments
+app.use('/api/questions', questionsRoutes); // Timer-based questions
+app.use('/api/timer-transcripts', timerTranscriptsRoutes); // Timer-based transcript storage
 app.use('/api/session-reports', sessionReportRoutes); // <-- NEW ROUTE
 app.use('/api/stats', statsRoutes); // <-- host/dashboard stats
 

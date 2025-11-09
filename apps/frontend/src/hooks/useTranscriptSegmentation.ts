@@ -23,31 +23,50 @@ interface SegmentationState {
   waitingForSpeech: boolean; // New field to indicate waiting state
 }
 
-// Utility function to calculate text similarity using simple character comparison
+// Enhanced text normalization for accurate duplicate detection
+const normalizeText = (text: string): string => {
+  if (!text || typeof text !== 'string') return '';
+  
+  return text
+    .toLowerCase()                           // Convert to lowercase
+    .replace(/[^\w\s]/g, ' ')               // Replace punctuation with spaces
+    .replace(/\s+/g, ' ')                   // Collapse multiple spaces
+    .trim();                                // Remove leading/trailing spaces
+};
+
+// Strict duplicate detection - only exact matches after normalization
+const isExactDuplicate = (text1: string, text2: string): boolean => {
+  if (!text1 || !text2) return false;
+  
+  const normalized1 = normalizeText(text1);
+  const normalized2 = normalizeText(text2);
+  
+  // Only consider it a duplicate if the normalized texts are exactly identical
+  return normalized1 === normalized2 && normalized1.length > 0;
+};
+
+// Calculate similarity percentage for logging purposes only
 const calculateTextSimilarity = (text1: string, text2: string): number => {
   if (!text1 || !text2) return 0;
   
-  const normalize = (text: string) => text.toLowerCase().replace(/[^\w\s]/g, '').trim();
-  const normalized1 = normalize(text1);
-  const normalized2 = normalize(text2);
+  const normalized1 = normalizeText(text1);
+  const normalized2 = normalizeText(text2);
   
   if (normalized1 === normalized2) return 100;
   if (normalized1.length === 0 || normalized2.length === 0) return 0;
   
-  // Check if one text is completely contained in the other (subset)
-  if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
-    const shorter = normalized1.length < normalized2.length ? normalized1 : normalized2;
-    const longer = normalized1.length >= normalized2.length ? normalized1 : normalized2;
-    return (shorter.length / longer.length) * 100;
-  }
+  // Simple word-based similarity for better accuracy
+  const words1 = normalized1.split(' ').filter(w => w.length > 0);
+  const words2 = normalized2.split(' ').filter(w => w.length > 0);
   
-  // Calculate character-level similarity
-  const maxLength = Math.max(normalized1.length, normalized2.length);
+  if (words1.length === 0 || words2.length === 0) return 0;
+  
+  // Count matching words in the same positions
+  const maxLength = Math.max(words1.length, words2.length);
   let matches = 0;
   
-  // Simple character matching
-  for (let i = 0; i < Math.min(normalized1.length, normalized2.length); i++) {
-    if (normalized1[i] === normalized2[i]) matches++;
+  for (let i = 0; i < Math.min(words1.length, words2.length); i++) {
+    if (words1[i] === words2[i]) matches++;
   }
   
   return (matches / maxLength) * 100;
@@ -148,7 +167,8 @@ export const useTranscriptSegmentation = (
   meetingId: string,
   isRecording: boolean,
   currentTranscripts: any[], // Accept transcripts directly from the component
-  pauseThreshold: number = MIN_SILENCE_DURATION // Use configurable constant as default
+  pauseThreshold: number = MIN_SILENCE_DURATION, // Use configurable constant as default
+  onSegmentSaved?: (segmentNumber: number, transcriptText: string, message?: string) => void // Enhanced callback with transcript content
 ) => {
   const [segmentationState, setSegmentationState] = useState<SegmentationState>({
     isCurrentlyPaused: false,
@@ -165,6 +185,7 @@ export const useTranscriptSegmentation = (
 
   // Use ref to avoid stale closure issues in timer callbacks
   const segmentationStateRef = useRef<SegmentationState>(segmentationState);
+  const processedTranscriptsRef = useRef<TranscriptLine[]>([]);
   
   // Update ref whenever state changes
   useEffect(() => {
@@ -202,6 +223,11 @@ export const useTranscriptSegmentation = (
       return !isSystemMessage;
     });
   }, [currentTranscripts]);
+
+  // Update processed transcripts ref after useMemo declaration
+  useEffect(() => {
+    processedTranscriptsRef.current = processedTranscripts;
+  }, [processedTranscripts]);
 
   const lastTranscriptTimeRef = useRef(Date.now());
   const pauseTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -283,7 +309,7 @@ export const useTranscriptSegmentation = (
         return;
       }
 
-      // STEP 6: STRICT DUPLICATE DETECTION - Check against last saved segment from database
+      // STEP 6: STRICT DUPLICATE DETECTION - Compare only with the immediate previous segment
       let lastSavedSegmentText = '';
       try {
         lastSavedSegmentText = await fetchLastSavedSegment(meetingId) || '';
@@ -291,14 +317,14 @@ export const useTranscriptSegmentation = (
         console.warn('⚠️ [SEGMENTATION] Could not fetch last segment for comparison, proceeding with save');
       }
 
-      // Compare with in-memory last saved text as fallback
-      const lastKnownSavedText = lastSavedSegmentTextRef.current || lastSavedSegmentText;
+      // Use the most recent saved segment text for comparison (prioritize database over memory)
+      const lastKnownSavedText = lastSavedSegmentText || lastSavedSegmentTextRef.current;
       
       if (lastKnownSavedText) {
-        // Calculate text similarity
+        // Calculate text similarity for logging purposes
         const similarity = calculateTextSimilarity(combinedTranscriptText, lastKnownSavedText);
         
-        console.log(`🔍 [SEGMENTATION] Duplicate check:`, {
+        console.log(`🔍 [SEGMENTATION] Duplicate check against previous segment:`, {
           newTextLength: combinedTranscriptText.length,
           lastSavedLength: lastKnownSavedText.length,
           similarity: similarity.toFixed(1) + '%',
@@ -306,11 +332,11 @@ export const useTranscriptSegmentation = (
           lastSavedPreview: lastKnownSavedText.substring(0, 100) + '...'
         });
 
-        // STRICT SIMILARITY THRESHOLD: 90% or higher = duplicate
-        if (similarity >= 90) {
-          console.log(`⚠️ [SEGMENTATION] Duplicate transcript detected (${similarity.toFixed(1)}% similarity) - skipping save`);
-          console.log(`⚠️ Skipped duplicate transcript (no meaningful change)`);
-          toast(`⚠️ Duplicate content skipped (${similarity.toFixed(1)}% similar)`, { duration: 4000, icon: '🔄' });
+        // STRICT DUPLICATE CHECK: Only exact matches after normalization are considered duplicates
+        if (isExactDuplicate(combinedTranscriptText, lastKnownSavedText)) {
+          console.log(`⚠️ [SEGMENTATION] Exact duplicate detected after normalization - skipping save`);
+          console.log(`⚠️ Duplicate transcript detected — not saved.`);
+          toast(`⚠️ Duplicate transcript detected — not saved.`, { duration: 4000, icon: '🔄' });
           
           // Reset pause state but don't save segment
           setSegmentationState(prev => ({
@@ -325,26 +351,7 @@ export const useTranscriptSegmentation = (
           return;
         }
 
-        // Check for exact content match as additional safeguard
-        if (combinedTranscriptText === lastKnownSavedText) {
-          console.log('⚠️ [SEGMENTATION] Exact duplicate content detected - skipping save');
-          console.log('⚠️ Skipped duplicate transcript (no meaningful change)');
-          toast('⚠️ Exact duplicate content - waiting for new speech', { duration: 4000, icon: '🔄' });
-          
-          // Reset pause state
-          setSegmentationState(prev => ({
-            ...prev,
-            isCurrentlyPaused: false,
-            pauseStartTime: null,
-            currentPauseDuration: 0,
-            timelineProgress: 0,
-            remainingTime: pauseThreshold
-          }));
-          
-          return;
-        }
-
-        console.log(`✅ [SEGMENTATION] Content is sufficiently different (${similarity.toFixed(1)}% similarity) - proceeding with save`);
+        console.log(`✅ [SEGMENTATION] Content is unique (${similarity.toFixed(1)}% similarity) - proceeding with save`);
       } else {
         console.log('🆕 [SEGMENTATION] No previous segment found - this will be the first segment');
       }
@@ -428,6 +435,11 @@ export const useTranscriptSegmentation = (
       console.log(`✅ Segment ${result.segmentNumber} saved successfully`);
       console.log(`✅ [SEGMENTATION] Database confirmed segment ${result.segmentNumber} saved with ${combinedTranscriptText.length} characters`);
 
+      // Call callback if provided (for timer session tracking)
+      if (onSegmentSaved) {
+        onSegmentSaved(result.segmentNumber, combinedTranscriptText, `Segment ${result.segmentNumber} saved successfully`);
+      }
+
       // STEP 10: Update state and tracking variables
       let newValidSegmentCount;
       let newInterimCount;
@@ -477,12 +489,12 @@ export const useTranscriptSegmentation = (
       
       if (ENABLE_FOURTH_SEGMENT_FILTERING) {
         console.log(`🎉 [SEGMENTATION] Valid Segment ${newValidSegmentCount} (4th cycle) saved at ${timeString} (${combinedTranscriptText.split(/\s+/).length} words)`);
-        console.log(`✅ Valid Segment ${newValidSegmentCount} saved successfully`);
-        toast.success(`📝 Valid Segment ${newValidSegmentCount} saved successfully`, { duration: 5000 });
+        console.log(`✅ New transcript saved successfully.`);
+        toast.success(`✅ New transcript saved successfully - Segment ${newValidSegmentCount}`, { duration: 5000 });
       } else {
         console.log(`🎉 [SEGMENTATION] Segment ${newValidSegmentCount} saved at ${timeString} (${combinedTranscriptText.split(/\s+/).length} words)`);
-        console.log(`✅ Segment ${newValidSegmentCount} saved successfully`);
-        toast.success(`📝 Segment ${newValidSegmentCount} saved successfully`, { duration: 5000 });
+        console.log(`✅ New transcript saved successfully.`);
+        toast.success(`✅ New transcript saved successfully - Segment ${newValidSegmentCount}`, { duration: 5000 });
       }
 
     } catch (error) {
@@ -499,15 +511,17 @@ export const useTranscriptSegmentation = (
   const checkSpeechActivity = useCallback(() => {
     if (!isRecording) return;
 
+    const currentProcessedTranscripts = processedTranscriptsRef.current;
+
     console.log(`🔍 [SEGMENTATION] Speech activity check:`, {
       isRecording,
-      processedTranscriptsLength: processedTranscripts.length,
-      hasProcessedTranscripts: processedTranscripts.length > 0
+      processedTranscriptsLength: currentProcessedTranscripts.length,
+      hasProcessedTranscripts: currentProcessedTranscripts.length > 0
     });
 
     // Use processed transcripts (already filtered for valid content)
     // Filter out system messages for speech activity detection
-    const allRealTranscripts = processedTranscripts.filter(t => 
+    const allRealTranscripts = currentProcessedTranscripts.filter(t => 
       !t.text.includes('[Speech recognition') && 
       !t.text.includes('[Speech Error:') &&
       !t.text.includes('[Speech recognition is now active') &&
@@ -685,7 +699,7 @@ export const useTranscriptSegmentation = (
         }));
       }
     }
-  }, [isRecording, meetingId, pauseThreshold, processedTranscripts, saveTranscriptSegment]);
+  }, [isRecording, meetingId, pauseThreshold, saveTranscriptSegment]); // Removed processedTranscripts to prevent infinite loop
 
   // Set up monitoring interval
   useEffect(() => {
@@ -736,7 +750,7 @@ export const useTranscriptSegmentation = (
         clearTimeout(pauseTimerRef.current);
       }
     };
-  }, [isRecording, processedTranscripts, checkSpeechActivity, pauseThreshold]);
+  }, [isRecording, processedTranscripts, pauseThreshold]); // Removed checkSpeechActivity to prevent infinite loop
 
   // Initialize transcript count based on current transcripts
   useEffect(() => {

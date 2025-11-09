@@ -21,23 +21,49 @@ function generateMockQuestions(fullText: string, config: any): Promise<GeminiQue
       const difficulty = config.difficulty[0] || 'medium';
       const numQuestions = config.numQuestions || 3;
       
+      // Extract key concepts from the transcript for better mock questions
+      const words = fullText.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+      const topConcepts = [...new Set(words)].slice(0, 5);
+      const mainConcept = topConcepts[0] || 'the content';
+      
       const mockQuestions = [];
       
+      const questionTemplates = {
+        multiple_choice: [
+          `Based on the principles discussed about ${mainConcept}, what factors would most likely influence the outcome?`,
+          `How would the approach described for ${mainConcept} apply to different scenarios?`,
+          `What underlying mechanisms drive the ${mainConcept} process explained in the recording?`
+        ],
+        true_false: [
+          `The relationship between ${mainConcept} and its applications suggests that optimization always requires complex algorithms.`,
+          `According to the explanation, ${mainConcept} principles remain consistent across different implementation contexts.`,
+          `The methodology described for ${mainConcept} can be directly applied without considering environmental factors.`
+        ],
+        short_answer: [
+          `Explain how the ${mainConcept} concepts discussed could be implemented in a practical setting.`,
+          `Analyze the advantages and limitations of the ${mainConcept} approach described.`,
+          `What factors should be considered when applying the ${mainConcept} principles to new situations?`
+        ]
+      };
+      
       for (let i = 1; i <= numQuestions; i++) {
+        const templates = questionTemplates[questionType as keyof typeof questionTemplates];
+        const questionText = templates[(i - 1) % templates.length];
+        
         if (questionType === 'multiple_choice') {
           mockQuestions.push({
             id: `mock-q-${i}`,
             type: 'multiple_choice' as const,
             difficulty: difficulty as any,
-            questionText: `Based on the transcript content, what was mentioned about topic ${i}?`,
+            questionText,
             options: [
-              "A. Information from the recorded transcript",
-              "B. Different interpretation of the content", 
-              "C. Alternative understanding of the material",
-              "D. None of the above"
+              "A. Systematic optimization and performance enhancement strategies",
+              "B. Historical precedents and traditional methodologies", 
+              "C. Random implementation without structured planning",
+              "D. Purely theoretical approaches without practical consideration"
             ],
             correctAnswer: "A",
-            explanation: `This question is based on the actual transcript content you recorded.`,
+            explanation: `This question tests understanding of the fundamental principles and practical applications discussed in your recording.`,
             points: 1
           });
         } else if (questionType === 'true_false') {
@@ -45,10 +71,10 @@ function generateMockQuestions(fullText: string, config: any): Promise<GeminiQue
             id: `mock-q-${i}`,
             type: 'true_false' as const,
             difficulty: difficulty as any,
-            questionText: `The recorded transcript discussed relevant information about the topic.`,
+            questionText,
             options: ["True", "False"],
-            correctAnswer: "True",
-            explanation: `Based on your recorded voice transcript.`,
+            correctAnswer: "False",
+            explanation: `This statement tests understanding of the nuanced relationships and context-dependent factors discussed in your content.`,
             points: 1
           });
         } else {
@@ -56,9 +82,9 @@ function generateMockQuestions(fullText: string, config: any): Promise<GeminiQue
             id: `mock-q-${i}`,
             type: 'short_answer' as const,
             difficulty: difficulty as any,
-            questionText: `What was the main point discussed in your recorded transcript?`,
-            correctAnswer: "Based on the voice recording content",
-            explanation: `This answer should reflect the content from your actual voice recording.`,
+            questionText,
+            correctAnswer: `Implementation should consider systematic analysis, context-specific factors, and optimization strategies based on the principles discussed.`,
+            explanation: `This answer should demonstrate understanding of the comprehensive approach and critical thinking applied to the concepts from your recording.`,
             points: 1
           });
         }
@@ -66,7 +92,7 @@ function generateMockQuestions(fullText: string, config: any): Promise<GeminiQue
       
       resolve({
         questions: mockQuestions,
-        summary: `Generated ${numQuestions} mock questions from your recorded transcript (${fullText.length} characters). Configure a valid Gemini API key for AI-generated questions.`
+        summary: `Generated ${numQuestions} analytical mock questions from your recorded transcript (${fullText.length} characters). Configure a valid Gemini API key for AI-generated questions.`
       });
     }, 1000); // Simulate API delay
   });
@@ -100,19 +126,39 @@ export async function generateQuestionsWithGemini(
   const level = config.difficulty[0] || 'medium';
   const primaryType = config.types[0] || 'multiple_choice';
 
-  // Construct the prompt - completely topic-agnostic, focused on actual speech content
-  const prompt = `You are an expert educator. Based ONLY on the following recorded speech transcript, generate exactly ${config.numQuestions} educational questions at ${level} difficulty level.
+  // Construct the prompt - focused on analytical and creative questions
+  const prompt = `You are an expert educational assessment designer. Based ONLY on the following recorded speech transcript, create exactly ${config.numQuestions} intellectually challenging questions at ${level} difficulty level.
 
-CRITICAL INSTRUCTIONS:
-1. Extract questions STRICTLY from the actual content spoken by the host
-2. Adapt to ANY subject/topic mentioned in the transcript (science, history, literature, business, technology, arts, etc.)
-3. Do NOT assume or add information not present in the transcript
-4. Question types requested: ${questionTypes}
-5. Focus on key concepts, facts, definitions, and ideas actually discussed
-6. If transcript covers multiple topics, distribute questions across those topics
-7. Use the exact terminology and context from the speech
+CRITICAL MISSION: Generate questions that test UNDERSTANDING, ANALYSIS, and APPLICATION - never simple recall or keyword recognition.
 
-Generate ${config.types.includes('multiple_choice') ? 'multiple choice questions with 4 realistic options (A, B, C, D)' : ''}${config.types.includes('true_false') ? 'true/false questions' : ''}${config.types.includes('short_answer') ? 'short answer questions' : ''}.
+QUALITY REQUIREMENTS:
+1. Extract CORE CONCEPTS, PRINCIPLES, and PROCESSES from the actual speech content
+2. Create questions that test HOW and WHY, not just WHAT was said
+3. Focus on RELATIONSHIPS, IMPLICATIONS, and PRACTICAL APPLICATIONS
+4. Test ability to APPLY concepts to new scenarios or ANALYZE cause-and-effect
+5. Avoid questions that can be answered by finding keywords in the transcript
+6. Create questions that require genuine comprehension to answer correctly
+7. Question types requested: ${questionTypes}
+
+QUESTION CREATION STRATEGIES:
+🧠 ANALYTICAL: "How does X influence Y?" / "What factors determine the effectiveness of Z?"
+🔄 APPLICATION: "Based on the principles discussed, what would happen if...?"
+🔍 EVALUATION: "What are the advantages and limitations of the approach described?"
+💡 SYNTHESIS: "How do the concepts discussed work together to achieve...?"
+📊 PREDICTION: "Given the explanation provided, what outcomes could be expected when...?"
+
+EXAMPLES OF EXCELLENT QUESTIONS:
+✅ "Based on the wavelength principles discussed, how would changing the medium properties affect signal transmission?"
+✅ "What factors determine the effectiveness of the segmentation approach described?"
+✅ "How do the audio processing techniques mentioned relate to real-world applications?"
+✅ "Why would the equalization methods discussed be important for different audio environments?"
+
+AVOID THESE TERRIBLE PATTERNS:
+❌ "What is mentioned in the transcript about [topic]?"
+❌ "The speaker said [word]. True or False?"
+❌ "Which term was used for [concept]?"
+
+Generate ${config.types.includes('multiple_choice') ? 'multiple choice questions with 4 analytical options that test understanding' : ''}${config.types.includes('true_false') ? 'true/false questions that test relationships and principles' : ''}${config.types.includes('short_answer') ? 'short answer questions requiring explanation and analysis' : ''}.
 
 Return response as valid JSON with this EXACT format:
 {
@@ -121,10 +167,10 @@ Return response as valid JSON with this EXACT format:
       "id": "q1",
       "type": "${primaryType}",
       "difficulty": "${level}",
-      "questionText": "Question derived from what was actually spoken?",
-      ${primaryType === 'multiple_choice' ? '"options": ["A. Option from transcript", "B. Related option", "C. Plausible alternative", "D. Another option"],' : ''}
-      "correctAnswer": "${primaryType === 'multiple_choice' ? 'A' : 'Answer from transcript'}",
-      "explanation": "Explanation referencing specific content from the speech",
+      "questionText": "Analytical question testing understanding of concepts and their applications",
+      ${primaryType === 'multiple_choice' ? '"options": ["A. Conceptual option requiring analysis", "B. Plausible but incorrect analysis", "C. Alternative analytical approach", "D. Different but logical consideration"],' : ''}
+      "correctAnswer": "${primaryType === 'multiple_choice' ? 'A' : 'Answer demonstrating understanding and analysis'}",
+      "explanation": "Explanation connecting the answer to the reasoning and concepts discussed in the speech",
       "points": 1
     }
   ],

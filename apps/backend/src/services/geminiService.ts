@@ -157,18 +157,42 @@ SUMMARY:`;
    * Build system prompt for question generation
    */
   private buildSystemPrompt(): string {
-    return `You are an expert exam question generator. Your task is to create educational questions based on meeting transcripts.
+    return `You are an expert educational assessment designer who creates thought-provoking, analytical questions that test deep understanding rather than simple recall.
 
-REQUIREMENTS:
+CRITICAL MISSION: Transform transcript content into intellectually challenging questions that require genuine comprehension, analysis, and application of concepts.
+
+MANDATORY REQUIREMENTS:
 1. Output ONLY valid JSON - no additional text, explanations, or formatting
 2. Follow the exact schema provided
-3. Create questions that test understanding of the key concepts discussed
-4. Ensure questions are educational and fair
-5. For multiple choice: include exactly 4 options with only one correct answer
-6. For true/false: create clear, unambiguous statements
-7. Provide helpful explanations for each answer
-8. Distribute difficulty levels as requested
-9. Make questions specific to the transcript content
+3. Create questions that test UNDERSTANDING, ANALYSIS, and APPLICATION - never simple recall
+4. Questions must require students to THINK, not just REMEMBER
+5. Focus on WHY and HOW, not just WHAT
+6. Test comprehension of relationships, implications, and real-world applications
+7. Avoid any question that can be answered by keyword spotting
+8. Create questions that would challenge someone who truly understands the content
+
+QUESTION TRANSFORMATION PRINCIPLES:
+🧠 ANALYTICAL QUESTIONS: Test cause-and-effect, relationships, implications
+🔄 APPLICATION QUESTIONS: Test ability to apply concepts to new scenarios  
+🔍 EVALUATION QUESTIONS: Test ability to judge, compare, and assess
+💡 SYNTHESIS QUESTIONS: Test ability to combine ideas and draw conclusions
+⚖️ CRITICAL THINKING: Test ability to analyze arguments and evidence
+
+QUALITY EXAMPLES:
+✅ EXCELLENT: "Based on the wavelength principles discussed, what would happen to audio quality if the medium's properties were altered?"
+✅ EXCELLENT: "How do the segmentation techniques mentioned relate to broader signal processing concepts?"
+✅ EXCELLENT: "What factors determine the effectiveness of the equalization methods described?"
+✅ EXCELLENT: "Why would the wavelength characteristics discussed be important for practical audio applications?"
+
+❌ TERRIBLE: "What was mentioned about wavelength?"
+❌ TERRIBLE: "The speaker said 'audio'. True or False?"
+❌ TERRIBLE: "Which term was used for sound?"
+❌ TERRIBLE: "What is wavelength mentioned in the transcript?"
+
+QUESTION TYPES:
+- Multiple Choice: Create 4 options where wrong answers are plausible but clearly incorrect to someone who understands
+- True/False: Test understanding of relationships, principles, or cause-and-effect - never simple facts
+- Short Answer: Require explanation, analysis, or application of concepts
 
 OUTPUT SCHEMA:
 {
@@ -177,14 +201,14 @@ OUTPUT SCHEMA:
       "id": "q1",
       "type": "multiple_choice|true_false|short_answer",
       "difficulty": "easy|medium|hard",
-      "questionText": "Clear, specific question text",
+      "questionText": "Question that tests conceptual understanding and analysis",
       "options": ["option1", "option2", "option3", "option4"], // for multiple_choice only
       "correctIndex": 0, // for multiple_choice (0-based index)
       "correctAnswer": "answer", // for short_answer only
-      "explanation": "Clear explanation of the correct answer"
+      "explanation": "Explanation connecting answer to the concepts and reasoning discussed"
     }
   ],
-  "summary": "Brief one-sentence summary of the question set"
+  "summary": "Summary of the key concepts these questions assess"
 }`;
   }
 
@@ -195,27 +219,69 @@ OUTPUT SCHEMA:
     const typeDistribution = this.calculateTypeDistribution(config.types, config.numQuestions);
     const difficultyDistribution = this.calculateDifficultyDistribution(config.difficulty, config.numQuestions);
 
-    return `TRANSCRIPT:
+    return `TRANSCRIPT CONTENT TO ANALYZE:
 ${transcriptContent}
 
-INSTRUCTIONS:
-Generate exactly ${config.numQuestions} questions based on the above transcript.
+MISSION: Create exactly ${config.numQuestions} intellectually challenging questions that test deep understanding of the concepts discussed above.
 
-QUESTION TYPE DISTRIBUTION:
+TARGET DISTRIBUTION:
 ${typeDistribution.map(t => `- ${t.count} ${t.type} questions`).join('\n')}
-
-DIFFICULTY DISTRIBUTION:
 ${difficultyDistribution.map(d => `- ${d.count} ${d.difficulty} questions`).join('\n')}
 
-GUIDELINES:
-- Questions must be directly related to content discussed in the transcript
-- Test understanding of key concepts, not just memorization
-- Multiple choice questions need exactly 4 options
-- True/false questions should be clear and unambiguous
-- Include explanations that reference the transcript content
-- Ensure questions are educational and appropriate
+CONTENT ANALYSIS FRAMEWORK:
+🎯 STEP 1: Identify CORE CONCEPTS, PRINCIPLES, and PROCESSES mentioned
+🔗 STEP 2: Map RELATIONSHIPS, CONNECTIONS, and INTERDEPENDENCIES between ideas
+🧠 STEP 3: Extract REASONING, EXPLANATIONS, and CAUSE-EFFECT patterns
+🚀 STEP 4: Find APPLICATIONS, IMPLICATIONS, and PRACTICAL CONSEQUENCES
+⚖️ STEP 5: Locate COMPARISONS, CONTRASTS, and EVALUATIVE JUDGMENTS
 
-Return the JSON response following the exact schema provided in the system prompt.`;
+QUESTION CREATION STRATEGY:
+💡 ANALYTICAL QUESTIONS: "How does X influence Y?" / "Why does A lead to B?" / "What causes C to occur?"
+🔄 APPLICATION QUESTIONS: "In what scenarios would this principle apply?" / "How would you implement this concept?"
+🔍 EVALUATION QUESTIONS: "What are the advantages/disadvantages of this approach?" / "Which method would be most effective?"
+🧩 SYNTHESIS QUESTIONS: "How do these concepts work together?" / "What would happen if we combined A and B?"
+📊 PREDICTION QUESTIONS: "Based on this explanation, what would likely occur if...?" / "What outcomes could we expect?"
+
+CREATIVITY AMPLIFIERS:
+⭐ Transform simple facts into scenario-based questions
+⭐ Convert definitions into application challenges
+⭐ Turn descriptions into analytical problems
+⭐ Change explanations into prediction tasks
+⭐ Convert comparisons into evaluation exercises
+
+FOR MULTIPLE CHOICE QUESTIONS:
+✅ Create distractors that require genuine understanding to eliminate
+✅ Make wrong answers plausible to someone with surface knowledge
+✅ Test application and analysis, not recognition
+✅ Include options that test common misconceptions
+
+FOR TRUE/FALSE QUESTIONS:  
+✅ Test understanding of principles and relationships
+✅ Create statements that require analysis to verify
+✅ Avoid simple factual claims that can be directly quoted
+
+FOR SHORT ANSWER QUESTIONS:
+✅ Require explanation of processes or reasoning
+✅ Ask for application of principles to new situations
+✅ Demand analysis of relationships or implications
+
+QUALITY CHECKPOINTS:
+❓ Would this question challenge someone who truly understands the content?
+❓ Does this require analysis beyond simple recall?
+❓ Could this be answered by someone who didn't listen to the explanation?
+❓ Does this test application of principles rather than recognition of keywords?
+
+SPECIFIC EXAMPLE TRANSFORMATIONS BASED ON YOUR TRANSCRIPT:
+Instead of: "What is mentioned about wavelength?"
+Create: "Based on the wavelength discussion, how would changing the medium properties affect the signal characteristics described?"
+
+Instead of: "Audio wavelength was discussed. True or False?"
+Create: "The relationship between audio wavelength and medium properties suggests that longer wavelengths would necessarily provide better signal quality. True or False?"
+
+Instead of: "Which segmentation technique was mentioned?"
+Create: "When would the segmentation approach described be most effective compared to alternative methods?"
+
+OUTPUT: Return ONLY the JSON response following the exact schema. No additional text, markdown, or explanations.`;
   }
 
   /**
@@ -244,8 +310,28 @@ Return the JSON response following the exact schema provided in the system promp
         throw new Error('Response missing summary string');
       }
 
-      // Validate each question
+      // Validate each question and calculate correctIndex for TRUE_FALSE questions
       parsed.questions.forEach((question: any, index: number) => {
+        // Calculate correctIndex for TRUE_FALSE questions if not already set
+        if (question.type === 'true_false' && typeof question.correctIndex !== 'number') {
+          // Ensure options are set for TRUE_FALSE questions
+          if (!question.options) {
+            question.options = ['True', 'False'];
+          }
+          
+          // Calculate correctIndex based on correctAnswer
+          const normalizedAnswer = (question.correctAnswer || '').toString().toLowerCase();
+          if (normalizedAnswer === 'true' || normalizedAnswer === '1' || normalizedAnswer === 'a') {
+            question.correctIndex = 0; // True is index 0
+          } else if (normalizedAnswer === 'false' || normalizedAnswer === '0' || normalizedAnswer === 'b') {
+            question.correctIndex = 1; // False is index 1
+          } else {
+            // Default to True if unclear
+            question.correctIndex = 0;
+            console.warn(`⚠️ [GEMINI] Unclear TRUE_FALSE answer "${question.correctAnswer}", defaulting to True`);
+          }
+        }
+        
         this.validateQuestion(question, index);
       });
 
@@ -284,6 +370,15 @@ Return the JSON response following the exact schema provided in the system promp
       }
       if (typeof question.correctIndex !== 'number' || question.correctIndex < 0 || question.correctIndex > 3) {
         throw new Error(`Question ${index + 1} must have valid correctIndex (0-3)`);
+      }
+    }
+
+    if (question.type === 'true_false') {
+      if (!question.options || !Array.isArray(question.options) || question.options.length !== 2) {
+        throw new Error(`Question ${index + 1} true/false must have exactly 2 options`);
+      }
+      if (typeof question.correctIndex !== 'number' || question.correctIndex < 0 || question.correctIndex > 1) {
+        throw new Error(`Question ${index + 1} true/false must have valid correctIndex (0-1)`);
       }
     }
 
@@ -413,64 +508,76 @@ Return the JSON response following the exact schema provided in the system promp
   private generateMultipleChoiceQuestion(analysis: any, difficulty: string, index: number): any {
     const templates = {
       easy: [
-        `What is mentioned in the transcript about ${analysis.keywords[0] || 'the topic'}?`,
-        `According to the content, which term is discussed?`,
-        `What concept is primarily addressed in this segment?`
+        `Based on the discussion of ${analysis.keywords[0] || 'the main concept'}, what would be the most important factor to consider?`,
+        `How does the ${analysis.keywords[0] || 'concept'} described relate to practical applications?`,
+        `What principle underlies the ${analysis.concepts[0] || 'approach'} being explained?`
       ],
       medium: [
-        `Based on the transcript content, what is the main focus regarding ${analysis.keywords[0] || 'the subject matter'}?`,
-        `Which of the following best describes the primary concept discussed?`,
-        `What is the key point being made about ${analysis.concepts[0] || 'the topic'}?`
+        `Considering the explanation of ${analysis.keywords[0] || 'the primary concept'}, what would likely happen if the conditions were changed?`,
+        `What factors determine the effectiveness of the ${analysis.keywords[0] || 'method'} discussed?`,
+        `How do the relationships between ${analysis.concepts[0] || 'the elements'} impact the overall outcome described?`
       ],
       hard: [
-        `Analyzing the transcript content, what underlying principle is being explained about ${analysis.keywords[0] || 'the subject'}?`,
-        `Which statement best captures the sophisticated concept being discussed regarding ${analysis.concepts[0] || 'the topic'}?`,
-        `What complex relationship is being established in the discussion about ${analysis.keywords[0] || 'the subject matter'}?`
+        `Analyzing the underlying principles of ${analysis.keywords[0] || 'the system'}, what critical implications emerge for implementation?`,
+        `What complex interactions between ${analysis.concepts[0] || 'variables'} would most significantly affect the results discussed?`,
+        `Based on the theoretical framework presented for ${analysis.keywords[0] || 'the concept'}, what predictions can be made about performance?`
       ]
     };
 
     const questionTemplates = templates[difficulty as keyof typeof templates] || templates.medium;
     const questionText = questionTemplates[index % questionTemplates.length];
     
-    // Generate options based on primary topic
+    // Generate options based on primary topic with more analytical choices
     const topicOptions = {
       technology: [
-        `${analysis.keywords[0] || 'Technology'} and its applications`,
-        'Business management strategies',
-        'Historical development processes',
-        'Educational methodologies'
+        `Optimization of performance parameters and efficiency metrics`,
+        `Integration challenges and implementation strategies`,
+        `User experience considerations and accessibility factors`,
+        `Security protocols and data protection measures`
       ],
       development: [
-        `${analysis.keywords[0] || 'Development'} and implementation`,
-        'Marketing and sales approaches',
-        'Financial planning methods',
-        'Research methodologies'
+        `Systematic approach to process improvement and quality assurance`,
+        'Resource allocation and strategic planning methodologies',
+        'Risk assessment and mitigation strategies',
+        'Innovation frameworks and creativity enhancement'
       ],
       recording: [
-        `${analysis.keywords[0] || 'Recording'} and audio processing`,
-        'Video editing techniques',
-        'Communication protocols',
-        'Data analysis methods'
+        `Signal processing techniques and quality optimization`,
+        'Data compression algorithms and efficiency metrics',
+        'Hardware compatibility and system integration',
+        'User interface design and interaction patterns'
       ],
       communication: [
-        `${analysis.keywords[0] || 'Communication'} and discussion methods`,
-        'Technical specifications',
-        'Mathematical calculations',
-        'Historical references'
+        `Information transfer protocols and clarity enhancement`,
+        'Network architecture and connectivity solutions',
+        'Content organization and presentation strategies',
+        'Feedback mechanisms and response optimization'
       ],
       business: [
-        `${analysis.keywords[0] || 'Business'} strategies and planning`,
-        'Technical implementation',
-        'Academic research',
-        'Creative processes'
+        `Strategic decision-making processes and outcome evaluation`,
+        'Operational efficiency and performance measurement',
+        'Market analysis and competitive positioning',
+        'Innovation management and growth strategies'
+      ],
+      audio: [
+        `Acoustic properties and signal characteristics`,
+        'Processing algorithms and enhancement techniques',
+        'Equipment specifications and performance metrics',
+        'Environmental factors and adaptation strategies'
+      ],
+      wavelength: [
+        `Frequency analysis and spectral characteristics`,
+        'Medium properties and propagation effects',
+        'Measurement techniques and calibration methods',
+        'Application scenarios and optimization approaches'
       ]
     };
     
     const options = topicOptions[analysis.primaryTopic as keyof typeof topicOptions] || [
-      `${analysis.keywords[0] || 'The main topic'} and related concepts`,
-      'Alternative approaches and methods',
-      'Historical context and background',
-      'Theoretical frameworks and models'
+      `Analysis of core principles and their practical implications`,
+      'Systematic approaches to problem-solving and optimization',
+      'Integration strategies and implementation considerations',
+      'Performance evaluation and improvement methodologies'
     ];
     
     return {
@@ -480,7 +587,7 @@ Return the JSON response following the exact schema provided in the system promp
       questionText,
       options,
       correctIndex: 0,
-      explanation: `This question tests comprehension of the main concept discussed: ${analysis.keywords[0] || 'the topic'}.`,
+      explanation: `This question assesses understanding of the fundamental principles and their applications as discussed in the content, requiring analysis of ${analysis.keywords[0] || 'the key concepts'} and their implications.`,
       points: 1,
       tags: ['content-based', analysis.primaryTopic, 'comprehension']
     };

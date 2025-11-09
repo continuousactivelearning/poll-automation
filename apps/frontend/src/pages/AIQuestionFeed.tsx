@@ -9,13 +9,15 @@ import {
 } from "lucide-react"
 import DashboardLayout from "../components/DashboardLayout"
 import GlassCard from "../components/GlassCard"
+import MiniAudioStatus from "../components/MiniAudioStatus"
+import TimerBasedQuestionsSection from "../components/TimerBasedQuestionsSection"
 import { useAuth } from "../contexts/AuthContext"
+import { useSessionManagement } from "../hooks/useSessionManagement"
 import { toast } from "react-hot-toast"
 import { useTranscriptCapture } from "../hooks/useTranscriptCapture"
 import { useAutoQuestions } from "../hooks/useAutoQuestions"
 import { LocalTranscriptManager } from "../utils/localTranscripts"
 import { generateQuestionsWithGemini } from "../utils/geminiQuestions"
-import { injectDemoTranscripts } from "../utils/demoTranscripts"
 import { apiService } from "../utils/api"
 import type { QuestionCapability } from "../utils/localTranscripts"
 
@@ -54,7 +56,9 @@ interface QuestionConfig {
 }
 
 const AIQuestionFeed = () => {
-  const { activeRoom, createRoom, destroyRoom, isCreatingRoom, socket } = useAuth();
+  const { activeRoom, createRoom, isCreatingRoom, socket } = useAuth();
+  // Enhanced session management with audio cleanup
+  const { endSessionWithAudioReset } = useSessionManagement();
   const navigate = useNavigate();
   
   // Room creation state
@@ -162,7 +166,7 @@ const AIQuestionFeed = () => {
     meetingId: activeRoom?._id || '',
     enabled: !!activeRoom
   });
-  
+
   // Configuration state
   const [config, setConfig] = useState<QuestionConfig>({
     numQuestions: 5,
@@ -192,9 +196,12 @@ const AIQuestionFeed = () => {
     createRoom(roomName);
   };
 
-  const handleDestroySession = () => {
-    destroyRoom(() => navigate('/host/leaderboard'));
-    setRoomName('');
+  const handleDestroySession = async () => {
+    const success = await endSessionWithAudioReset(() => navigate('/host/leaderboard'));
+    if (success) {
+      setRoomName('');
+      console.log('✅ [AI_QUESTIONS] Session ended successfully with audio reset');
+    }
   };
 
   // Debug function to test socket connection
@@ -568,54 +575,61 @@ const AIQuestionFeed = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto p-6 space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 md:space-y-8">
+        {/* Header Section - Responsive */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center space-x-3 md:space-x-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Brain className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">AI Questions</h1>
-              <p className="text-gray-400">Generate intelligent questions from your meeting transcripts</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">AI Questions</h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <p className="text-sm md:text-base text-gray-400">Generate intelligent questions from your meeting transcripts</p>
+                <MiniAudioStatus showText={false} size="md" />
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={loadDemoTranscripts}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+              className="px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center space-x-1 sm:space-x-2 transition-colors text-sm"
             >
-              <Play className="w-4 h-4" />
-              <span>Demo Transcripts</span>
+              <Play className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Demo Transcripts</span>
+              <span className="sm:hidden">Demo</span>
             </button>
             
             <button
               onClick={handleClearQuestions}
-              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+              className="px-3 sm:px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center space-x-1 sm:space-x-2 transition-colors text-sm"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Clear Questions</span>
+              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Clear Questions</span>
+              <span className="sm:hidden">Clear</span>
             </button>
             
             <button
               onClick={clearTranscripts}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+              className="px-3 sm:px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center space-x-1 sm:space-x-2 transition-colors text-sm"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Clear Transcripts</span>
+              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Clear Transcripts</span>
+              <span className="sm:hidden">Clear</span>
             </button>
           </div>
         </div>
 
-        {/* Room Creation Section */}
-        <GlassCard className="p-6">
-          <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
-            <Settings className="w-5 h-5 mr-2 text-blue-400" />
+        {/* Room Creation Section - Mobile Responsive */}
+        <GlassCard className="p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center">
+            <Settings className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400" />
             1. Create Your Session
           </h2>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Session Name <span className="text-red-400">*</span>
             </label>
             <input 
@@ -627,7 +641,7 @@ const AIQuestionFeed = () => {
               }} 
               placeholder="e.g., AI Generated Quiz Session" 
               disabled={!!activeRoom}
-              className={`w-full px-4 py-2 bg-white/5 border ${roomNameError ? "border-red-500" : "border-white/10"} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition disabled:bg-white/10 disabled:cursor-not-allowed`}
+              className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-white/5 border ${roomNameError ? "border-red-500" : "border-white/10"} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition disabled:bg-white/10 disabled:cursor-not-allowed text-sm sm:text-base`}
             />
             {roomNameError && <p className="text-red-400 text-xs mt-1">{roomNameError}</p>}
           </div>
@@ -636,110 +650,212 @@ const AIQuestionFeed = () => {
             <motion.button 
               onClick={handleCreateSession} 
               disabled={isCreatingRoom} 
-              className="btn-primary w-full py-3 flex items-center justify-center mb-4"
+              className="btn-primary w-full py-2 sm:py-3 flex items-center justify-center mb-4 text-sm sm:text-base"
             >
-              {isCreatingRoom ? <Loader className="animate-spin" /> : 'Create Session & Get Code'}
+              {isCreatingRoom ? <Loader className="animate-spin w-4 h-4 sm:w-5 sm:h-5" /> : 'Create Session & Get Code'}
             </motion.button>
           ) : (
-            <div className="text-center p-4 bg-green-500/10 border border-green-500/30 rounded-lg mb-4">
-              <p className="text-gray-300">Session <span className="font-bold text-white">"{activeRoom.name}"</span> is active!</p>
-              <p className="text-3xl font-bold text-white tracking-widest my-2">{activeRoom.code}</p>
-              <div className="flex justify-center space-x-2">
+            <div className="text-center p-3 sm:p-4 bg-green-500/10 border border-green-500/30 rounded-lg mb-4">
+              <p className="text-sm sm:text-base text-gray-300">Session <span className="font-bold text-white">"{activeRoom.name}"</span> is active!</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white tracking-widest my-2">{activeRoom.code}</p>
+              <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-0 sm:space-x-2">
                 <button 
                     onClick={handleDestroySession} 
-                    className="text-red-400 text-sm hover:underline flex items-center gap-1"
+                    className="text-red-400 text-xs sm:text-sm hover:underline flex items-center justify-center gap-1"
                 >
-                    <Trash2 size={14}/> End This Session
+                    <Trash2 size={12}/> End This Session
                 </button>
-                {/* <button 
-                    onClick={testSocketConnection} 
-                    className="text-blue-400 text-sm hover:underline flex items-center gap-1"
-                >
-                    🧪 Debug Connection
-                </button> */}
               </div>
             </div>
           )}
         </GlassCard>
 
-        {/* Auto-Generated Questions Section */}
+        {/* Auto-Generated Questions Section - Mobile Responsive */}
         {questionSegments.length > 0 && (
-          <GlassCard className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
+          <GlassCard className="p-4 sm:p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 sm:mb-6 gap-4">
+              <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Auto-Generated Questions</h2>
-                  <p className="text-gray-400">
-                    📘 {getTotalQuestionCount()} questions from {questionSegments.length} segments
-                    {isConnected && <span className="text-green-400 ml-2">• Live</span>}
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex flex-col sm:flex-row sm:items-center gap-2">
+                    ⚡ Auto-Generated Questions
+                    <span className="text-xs sm:text-sm bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
+                      SEGMENT-BASED
+                    </span>
+                  </h2>
+                  <p className="text-sm sm:text-base text-gray-400 mt-1">
+                    {isConnected ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        Live generation enabled
+                      </span>
+                    ) : (
+                      <>
+                        📘 {getTotalQuestionCount()} questions from {questionSegments.length} segments
+                        <br className="hidden sm:block" />
+                        <span className="text-xs sm:text-sm italic">
+                          "Questions generated from individual segment analysis."
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
               
-              <button
-                onClick={handleClearQuestions}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
-                title="Clear all auto-generated questions from UI"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Clear Questions</span>
-              </button>
+              <div className="flex items-center justify-end sm:justify-start">
+                <button
+                  onClick={handleClearQuestions}
+                  className="px-3 sm:px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center space-x-1 sm:space-x-2 transition-colors text-sm"
+                  title="Clear all auto-generated questions from UI"
+                >
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span>Clear</span>
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {questionSegments.map((segment) => (
-                <div key={segment.segmentId} className="bg-black/20 rounded-lg p-4 border border-gray-700/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-white">
-                      Segment {segment.segmentNumber}
-                    </h3>
-                    <span className="text-xs text-gray-400">
-                      {segment.questions.length} questions • {new Date(segment.generatedAt).toLocaleTimeString()}
-                    </span>
+            <div className="space-y-4 sm:space-y-6">
+              {questionSegments.map((segment, segmentIndex) => (
+                <motion.div
+                  key={segment.segmentId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: segmentIndex * 0.1 }}
+                  className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg p-3 sm:p-5 border border-green-500/20"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+                          Segment {segment.segmentNumber}
+                          <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                        </h3>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-400">
+                          <span>📝 {segment.questions.length} questions</span>
+                          <span>📅 {new Date(segment.generatedAt).toLocaleTimeString()}</span>
+                          {isConnected && (
+                            <span className="text-green-400 flex items-center gap-1">
+                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                              Live
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   {segment.summary && (
-                    <p className="text-gray-300 text-sm mb-4 italic">"{segment.summary}"</p>
+                    <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <p className="text-green-300 text-xs sm:text-sm italic">"{segment.summary}"</p>
+                    </div>
                   )}
 
-                  <div className="space-y-3">
-                    {segment.questions.map((question) => (
-                      <div key={question.id} className="bg-white/5 rounded-lg p-3 border border-gray-600/30">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">
+                  <div className="space-y-3 sm:space-y-4">
+                    {segment.questions.map((question, questionIndex) => (
+                      <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: (segmentIndex * 0.1) + (questionIndex * 0.05) }}
+                        className="bg-black/20 rounded-lg p-3 sm:p-4 border border-gray-600/30 hover:border-green-500/30 transition-all"
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                question.type === 'multiple_choice' 
+                                  ? 'bg-blue-500/20 text-blue-300'
+                                  : question.type === 'true_false'
+                                  ? 'bg-purple-500/20 text-purple-300'
+                                  : 'bg-orange-500/20 text-orange-300'
+                              }`}>
                                 {question.type.replace('_', ' ').toUpperCase()}
                               </span>
-                              <span className="text-xs bg-gray-600/30 text-gray-300 px-2 py-1 rounded-full">
+                              <span className={`text-xs px-2 py-1 rounded-full bg-gray-600/30 ${
+                                question.difficulty === 'easy' 
+                                  ? 'text-green-400'
+                                  : question.difficulty === 'medium'
+                                  ? 'text-yellow-400'
+                                  : 'text-red-400'
+                              }`}>
                                 {question.difficulty.toUpperCase()}
                               </span>
+                              <span className="text-xs bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
+                                ⚡ AUTO-GEN
+                              </span>
+                              <span className="text-xs bg-blue-600/20 text-blue-300 px-2 py-1 rounded-full">
+                                SEGMENT-BASED
+                              </span>
                             </div>
-                            <p className="text-white font-medium mb-2">{question.questionText}</p>
                             
-                            {question.options && (
-                              <div className="space-y-1">
+                            <p className="text-white font-medium mb-2 sm:mb-3 text-sm sm:text-lg leading-relaxed">
+                              {question.questionText}
+                            </p>
+                            
+                            {question.options && question.options.length > 0 && (
+                              <div className="space-y-2 mb-2 sm:mb-3">
                                 {question.options.map((option, optIndex) => (
-                                  <div key={optIndex} className="text-sm text-gray-300 flex items-center space-x-2">
-                                    <span className="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center text-xs">
-                                      {String.fromCharCode(65 + optIndex)}
-                                    </span>
-                                    <span>{option}</span>
-                                    {question.correctIndex === optIndex && (
-                                      <CheckCircle className="w-4 h-4 text-green-400" />
-                                    )}
+                                  <div 
+                                    key={optIndex} 
+                                    className={`p-2 sm:p-3 rounded-lg border transition-all ${
+                                      question.correctIndex === optIndex 
+                                        ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50'
+                                    }`}
+                                  >
+                                    <div className="flex items-center space-x-2 sm:space-x-3">
+                                      <span className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 ${
+                                        question.correctIndex === optIndex 
+                                          ? 'bg-green-500 text-white'
+                                          : 'bg-gray-700 text-gray-300'
+                                      }`}>
+                                        {String.fromCharCode(65 + optIndex)}
+                                      </span>
+                                      <span className="flex-1 text-sm sm:text-base">{option}</span>
+                                      {question.correctIndex === optIndex && (
+                                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 flex-shrink-0" />
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {question.type === 'true_false' && (
+                              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-2 sm:mb-3">
+                                {['True', 'False'].map((option, optIndex) => (
+                                  <div 
+                                    key={option}
+                                    className={`p-2 sm:p-3 rounded-lg border flex-1 text-center transition-all ${
+                                      (question.correctAnswer === 'true' && option === 'True') ||
+                                      (question.correctAnswer === 'false' && option === 'False') ||
+                                      (question.correctIndex === optIndex)
+                                        ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-300'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-center space-x-2">
+                                      <span className="text-sm sm:text-base">{option}</span>
+                                      {((question.correctAnswer === 'true' && option === 'True') ||
+                                        (question.correctAnswer === 'false' && option === 'False') ||
+                                        (question.correctIndex === optIndex)) && (
+                                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                                      )}
+                                    </div>
                                   </div>
                                 ))}
                               </div>
                             )}
                             
                             {question.explanation && (
-                              <div className="mt-2 p-2 bg-blue-500/10 rounded border-l-2 border-blue-500">
-                                <p className="text-xs text-gray-300">
-                                  <strong>Explanation:</strong> {question.explanation}
+                              <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded border-l-4 border-green-500">
+                                <p className="text-xs sm:text-sm text-gray-300">
+                                  <strong className="text-green-400">💡 Explanation:</strong> {question.explanation}
                                 </p>
                               </div>
                             )}
@@ -747,23 +863,29 @@ const AIQuestionFeed = () => {
                           
                           <button
                             onClick={() => launchQuestion(question)}
-                            className="ml-4 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center space-x-2 transition-colors text-sm"
+                            className="ml-0 lg:ml-4 mt-3 lg:mt-0 w-full lg:w-auto px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg flex items-center justify-center space-x-1 sm:space-x-2 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
                           >
-                            <Play className="w-4 h-4" />
+                            <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>Launch</span>
                           </button>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </GlassCard>
         )}
 
-        {/* Progress Steps */}
-        <div className="flex items-center space-x-8 mb-8">
+        {/* Timer-Based Questions Section - Enhanced Creative Questions */}
+        <TimerBasedQuestionsSection 
+          roomId={activeRoom?._id || ''}
+          onLaunchQuestion={launchQuestion}
+        />
+
+        {/* Progress Steps - Mobile Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 md:space-x-8 mb-4 sm:mb-8 space-y-3 sm:space-y-0">
           {[
             { id: 'config', label: 'Configure', icon: Settings },
             { id: 'preview', label: 'Preview', icon: FileText },
@@ -774,8 +896,8 @@ const AIQuestionFeed = () => {
             const StepIcon = step.icon;
             
             return (
-              <div key={step.id} className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+              <div key={step.id} className="flex items-center space-x-2 sm:space-x-3">
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center transition-all ${
                   isActive 
                     ? 'border-blue-500 bg-blue-500/20 text-blue-400' 
                     : isComplete 
@@ -783,9 +905,9 @@ const AIQuestionFeed = () => {
                       : 'border-gray-600 bg-gray-800 text-gray-400'
                 }`}>
                   {isComplete && !isActive ? (
-                    <CheckCircle className="w-5 h-5" />
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <StepIcon className="w-5 h-5" />
+                    <StepIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </div>
                 <span className={`text-sm font-medium ${
@@ -794,54 +916,54 @@ const AIQuestionFeed = () => {
                   {step.label}
                 </span>
                 {index < 2 && (
-                  <div className={`w-12 h-0.5 ${isComplete ? 'bg-green-500' : 'bg-gray-600'}`} />
+                  <div className={`hidden sm:block w-8 md:w-12 h-0.5 ${isComplete ? 'bg-green-500' : 'bg-gray-600'}`} />
                 )}
               </div>
             );
           })}
         </div>
 
-        {/* Transcript Summary */}
+        {/* Transcript Summary - Mobile Responsive */}
         {transcriptSummary && (
           <GlassCard>
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2 text-blue-400" />
+            <div className="p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400" />
                 Live Transcript Summary
               </h3>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="bg-gray-800/50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-400">{transcriptSummary.totalRecords}</div>
-                  <div className="text-sm text-gray-400">Records</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                  <div className="text-lg sm:text-2xl font-bold text-blue-400">{transcriptSummary.totalRecords}</div>
+                  <div className="text-xs sm:text-sm text-gray-400">Records</div>
                 </div>
-                <div className="bg-gray-800/50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-green-400">{transcriptSummary.totalWords}</div>
-                  <div className="text-sm text-gray-400">Words</div>
+                <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                  <div className="text-lg sm:text-2xl font-bold text-green-400">{transcriptSummary.totalWords}</div>
+                  <div className="text-xs sm:text-sm text-gray-400">Words</div>
                 </div>
-                <div className="bg-gray-800/50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-400">{transcriptSummary.averageWordsPerMinute}</div>
-                  <div className="text-sm text-gray-400">WPM</div>
+                <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                  <div className="text-lg sm:text-2xl font-bold text-purple-400">{transcriptSummary.averageWordsPerMinute}</div>
+                  <div className="text-xs sm:text-sm text-gray-400">WPM</div>
                 </div>
-                <div className="bg-gray-800/50 p-3 rounded-lg">
-                  <div className={`text-2xl font-bold ${transcriptSummary.readyForAI ? 'text-green-400' : 'text-red-400'}`}>
+                <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                  <div className={`text-lg sm:text-2xl font-bold ${transcriptSummary.readyForAI ? 'text-green-400' : 'text-red-400'}`}>
                     {transcriptSummary.readyForAI ? 'Ready' : 'Not Ready'}
                   </div>
-                  <div className="text-sm text-gray-400">AI Status</div>
+                  <div className="text-xs sm:text-sm text-gray-400">AI Status</div>
                 </div>
               </div>
 
               {questionCapability && (
-                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg">
-                  <h4 className="text-blue-400 font-medium mb-2 flex items-center">
-                    <Zap className="w-4 h-4 mr-2" />
+                <div className="bg-blue-500/10 border border-blue-500/20 p-3 sm:p-4 rounded-lg">
+                  <h4 className="text-blue-400 font-medium mb-2 flex items-center text-sm sm:text-base">
+                    <Zap className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     AI Question Generation Capability
                   </h4>
-                  <div className="text-white">
+                  <div className="text-white text-sm sm:text-base">
                     Can generate <strong>{questionCapability.minQuestions}-{questionCapability.maxQuestions}</strong> questions 
                     (recommended: <strong>{questionCapability.recommendedQuestions}</strong>)
                   </div>
-                  <div className="text-sm text-gray-400 mt-1">
+                  <div className="text-xs sm:text-sm text-gray-400 mt-1">
                     Confidence: <span className={`capitalize ${
                       questionCapability.confidence === 'very-high' ? 'text-green-400' :
                       questionCapability.confidence === 'high' ? 'text-blue-400' :
@@ -855,16 +977,16 @@ const AIQuestionFeed = () => {
           </GlassCard>
         )}
 
-        {/* Configuration Step */}
+        {/* Configuration Step - Mobile Responsive */}
         {currentStep === 'config' && (
           <GlassCard>
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
-                <Settings className="w-5 h-5 mr-2 text-blue-400" />
+            <div className="p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6 flex items-center">
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400" />
                 Question Generation Configuration
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Number of Questions
@@ -872,7 +994,7 @@ const AIQuestionFeed = () => {
                   <select
                     value={config.numQuestions}
                     onChange={(e) => setConfig(prev => ({ ...prev, numQuestions: parseInt(e.target.value) }))}
-                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full p-2 sm:p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm sm:text-base"
                   >
                     {questionCapability && [...Array(questionCapability.maxQuestions - questionCapability.minQuestions + 1)].map((_, i) => {
                       const num = questionCapability.minQuestions + i;
@@ -895,7 +1017,7 @@ const AIQuestionFeed = () => {
                   </label>
                   <div className="space-y-2">
                     {['multiple_choice', 'true_false', 'short_answer'].map(type => (
-                      <label key={type} className="flex items-center space-x-3">
+                      <label key={type} className="flex items-center space-x-2 sm:space-x-3">
                         <input
                           type="checkbox"
                           checked={config.types.includes(type as any)}
@@ -908,27 +1030,27 @@ const AIQuestionFeed = () => {
                           }}
                           className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
                         />
-                        <span className="text-white capitalize">{type.replace('_', ' ')}</span>
+                        <span className="text-white capitalize text-sm sm:text-base">{type.replace('_', ' ')}</span>
                       </label>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-end">
+              <div className="mt-6 sm:mt-8 flex justify-end">
                 <button
                   onClick={generateQuestions}
                   disabled={isLoading || !transcriptSummary?.readyForAI}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-medium rounded-lg flex items-center space-x-2 transition-all disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-medium rounded-lg flex items-center justify-center space-x-2 transition-all disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {isLoading ? (
                     <>
-                      <Loader className="w-5 h-5 animate-spin" />
+                      <Loader className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                       <span>Generating...</span>
                     </>
                   ) : (
                     <>
-                      <Brain className="w-5 h-5" />
+                      <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
                       <span>Generate Questions</span>
                     </>
                   )}

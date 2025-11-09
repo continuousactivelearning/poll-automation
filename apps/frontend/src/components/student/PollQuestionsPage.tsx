@@ -2,8 +2,8 @@
 "use client"
 import React, { useState, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { motion, AnimatePresence, delay } from "framer-motion"
-import { Users, Trophy, CheckCircle, X, Timer, Brain, Lightbulb, TrendingUp, Zap, Target, Star, Award, ArrowRight } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Users, Trophy, Timer, Zap, Target, Star } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import GlassCard from "../GlassCard"
 import toast from 'react-hot-toast'
@@ -31,10 +31,9 @@ const PollQuestionsPage: React.FC = () => {
   const [roomJoined, setRoomJoined] = useState(false);
   const [actualRoomId, setActualRoomId] = useState<string | null>(null); // Store the actual room ID
 
-  // --- Gamification State ---
+    // --- Gamification State ---
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [showResult, setShowResult] = useState(false);
 
   // Initial setup and redirection
   useEffect(() => {
@@ -149,12 +148,10 @@ const PollQuestionsPage: React.FC = () => {
       setTimeLeft(pollData.timerDuration);
       setIsAnswered(false);
       setSelectedAnswer(null);
-      setShowResult(false);
       toast.success("A new poll has started!");
     };
     const handlePollEnded = () => {
       toast("The host has ended the poll.", { duration: 3000 });
-      setShowResult(false);
       setCurrentPoll(null);
     };
     const handleMeetingEnded = () => {
@@ -225,7 +222,6 @@ const PollQuestionsPage: React.FC = () => {
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && currentPoll && !isAnswered) {
       setIsAnswered(true);
-      setShowResult(true);
       toast.error("Time's up!");
     }
   }, [timeLeft, currentPoll, isAnswered]);
@@ -257,7 +253,6 @@ const PollQuestionsPage: React.FC = () => {
     socket.once('vote-result', ({ isCorrect, pointsAwarded, totalScore, streak }: any) => {
         setScore(totalScore);
         setStreak(streak);
-        setShowResult(true);
         if (isCorrect) {
             toast.success(`Correct! +${pointsAwarded} points`);
         } else {

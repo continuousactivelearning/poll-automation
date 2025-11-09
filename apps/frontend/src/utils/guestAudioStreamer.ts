@@ -21,7 +21,6 @@ export interface GuestAudioChunkMessage {
 }
 
 export class GuestAudioStreamer {
-  private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
   private websocket: WebSocket | null = null;
   private speechRecognition: any = null;

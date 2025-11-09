@@ -1,17 +1,20 @@
 // apps/frontend/src/App.tsx
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LoadingProvider } from './contexts/LoadingContext';
+import { GlobalAudioProvider } from './contexts/GlobalAudioContext';
+import { TimerAudioProvider } from './contexts/TimerAudioContext';
 import AuthGuard from './components/AuthGuard';
 import LoadingScreen from './components/LoadingScreen';
+import GlobalAudioIndicator from './components/GlobalAudioIndicator';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HostDashboard from './pages/HostDashboard'
 import StudentDashboard from './pages/StudentDashboard';
 import AudioCapture from './pages/AudioCapture';
+import AudioCaptureGlobal from './pages/AudioCaptureGlobal';
 import AIQuestionFeed from './pages/AIQuestionFeed';
 import Participants from './pages/Participants';
 import Leaderboard from './pages/Leaderboard';
@@ -21,12 +24,9 @@ import HomePage from './pages/HomePage';
 import CreateManualPoll from './pages/CreateManualPoll';
 import CreatePollPage from './pages/CreatePollPage';
 import ContactUs from './pages/ContactUs';
-import ChangePassword from './components/student/ChangePassword';
 import GuestPage from './pages/guest/GuestPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
-
 
 // Student dashboard section imports
 import JoinPollPage from './components/student/JoinPollPage';
@@ -38,81 +38,88 @@ import NotificationPage from './components/student/NotificationPage';
 import SettingsStudent from './components/student/Settings';
 import StudentLeaderboard from './components/student/StudentLeaderboard';
 import DashboardHomePage from './components/student/DashboardHomePage';
-import ActiveSessions from './components/student/ActiveSessions';
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <LoadingProvider>
-          <Router>
-            <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
-              <LoadingScreen />
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
-                <Route path="/contactUs" element={<ContactUs />} />
-                <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <GlobalAudioProvider>
+            <LoadingProvider>
+              <Router>
+                <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
+                  <LoadingScreen />
+                  <GlobalAudioIndicator />
+                  <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                   <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+                  <Route path="/contactUs" element={<ContactUs />} />
+                  <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
-                {/* Host Dashboard Routes */}
-                <Route path="/host" element={
-                    <HostDashboard />
-                } />
-                <Route path="/host/audio" element={
-                    <AudioCapture />
-                } />
-                <Route path="/host/ai-questions" element={
-                    <AIQuestionFeed />
-                } />
-                <Route path="/host/create-manual-poll" element={
-                    <CreateManualPoll />
-                } />
-                <Route path="/host/create-poll" element={
-                    <CreatePollPage />
-                } />
-             <Route path="/host/participants" element={
-                    <AuthGuard >
-                        <Participants />
-                    </AuthGuard>
-                } />
-
-           
-                <Route path="/host/leaderboard" element={
-                    <Leaderboard />
-                } />
-                <Route path="/host/reports" element={
-                    <Reports />
-                } />
-                <Route path="/host/settings" element={
-                    <Settings />
-                } />
-                <Route path="/guest" element={
-                  <GuestPage />
+                  {/* Host Dashboard Routes */}
+                  <Route path="/host" element={
+                      <HostDashboard />
+                  } />
+                  <Route path="/host/audio" element={
+                    <TimerAudioProvider>
+                      <AudioCaptureGlobal />
+                    </TimerAudioProvider>
+                  } />
+                  <Route path="/host/audio-legacy" element={
+                      <AudioCapture />
+                  } />
+                  <Route path="/host/ai-questions" element={
+                      <AIQuestionFeed />
+                  } />
+                  <Route path="/host/create-manual-poll" element={
+                      <CreateManualPoll />
+                  } />
+                  <Route path="/host/create-poll" element={
+                      <CreatePollPage />
+                  } />
+               <Route path="/host/participants" element={
+                      <AuthGuard >
+                          <Participants />
+                      </AuthGuard>
                   } />
 
-      {/* Student Dashboard Routes */}
-      <Route path="/student/*" element={<StudentDashboard />}>
-        <Route index element={<DashboardHomePage />} />
-        <Route path="join-poll" element={<JoinPollPage />} />
-        <Route path="history" element={<PollHistoryPage />} />
-        <Route path="poll-questions" element={<PollQuestionsPage />} />
-            
+             
+                  <Route path="/host/leaderboard" element={
+                      <Leaderboard />
+                  } />
+                  <Route path="/host/reports" element={
+                      <Reports />
+                  } />
+                  <Route path="/host/settings" element={
+                      <Settings />
+                  } />
+                  <Route path="/guest" element={
+                    <GuestPage />
+                    } />
 
-        <Route path="profile" element={<StudentProfilePage />} />
-        <Route path="achievements" element={<AchievementPage />} />
-        <Route path="notifications" element={<NotificationPage />} />
-        <Route path="settings" element={<SettingsStudent />} />
-        <Route path="leaderboard" element={<StudentLeaderboard />} />
-        {/* <Route path="change-password" element={<ChangePassword />} />
-        <Route path="active-sessions" element={<ActiveSessions />} /> */}
-      </Route>
-    </Routes>
-            </div>
-          </Router>
-        </LoadingProvider>
+        {/* Student Dashboard Routes */}
+        <Route path="/student/*" element={<StudentDashboard />}>
+          <Route index element={<DashboardHomePage />} />
+          <Route path="join-poll" element={<JoinPollPage />} />
+          <Route path="history" element={<PollHistoryPage />} />
+          <Route path="poll-questions" element={<PollQuestionsPage />} />
+              
+
+          <Route path="profile" element={<StudentProfilePage />} />
+          <Route path="achievements" element={<AchievementPage />} />
+          <Route path="notifications" element={<NotificationPage />} />
+          <Route path="settings" element={<SettingsStudent />} />
+          <Route path="leaderboard" element={<StudentLeaderboard />} />
+          {/* <Route path="change-password" element={<ChangePassword />} />
+          <Route path="active-sessions" element={<ActiveSessions />} /> */}
+        </Route>
+      </Routes>
+                </div>
+              </Router>
+            </LoadingProvider>
+        </GlobalAudioProvider>
       </AuthProvider>
     </ThemeProvider>
   );

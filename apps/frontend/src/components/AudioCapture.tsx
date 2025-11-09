@@ -1,18 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mic, 
   MicOff, 
-  Volume2, 
   Activity, 
-  Pause, 
-  Play, 
   Square,
   Wifi,
   WifiOff,
   AlertCircle,
   Download,
-  Settings,
   Monitor,
   User
 } from 'lucide-react';
@@ -21,10 +17,12 @@ import GlassCard from '../components/GlassCard';
 import { useTranscriptCapture } from '../hooks/useTranscriptCapture';
 import { useTranscriptSegmentation } from '../hooks/useTranscriptSegmentation';
 import { useAutoQuestions } from '../hooks/useAutoQuestions';
+import TimerControls from './TimerControls';
+import FloatingTimerControl from './FloatingTimerControl';
 import GuestLinkGenerator from '../components/host/GuestLinkGenerator';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { AudioStreamer, type TranscriptMessage, formatTimestamp, calculateWaveform } from '../utils/audioStreamer';
+import { AudioStreamer, type TranscriptMessage, formatTimestamp } from '../utils/audioStreamer';
 
 interface TranscriptLine {
   id: string;
@@ -126,7 +124,8 @@ const AudioCapture = () => {
     activeRoom?._id || 'no-room',
     status === 'recording', // Only active when recording
     transcriptLines, // Pass current transcripts to the hook
-    10000 // 10 seconds pause threshold
+    10000, // 10 seconds pause threshold
+    undefined // No timer callback for regular AudioCapture component
   );
 
   // Initialize auto questions for real-time question generation
@@ -745,6 +744,9 @@ const AudioCapture = () => {
           )}
         </AnimatePresence>
 
+        {/* Timer Controls */}
+        <TimerControls />
+
         {/* Recording Controls */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <GlassCard className="p-6">
@@ -1317,6 +1319,9 @@ const AudioCapture = () => {
 
         {/* Guest Link Generator */}
         <GuestLinkGenerator meetingId={activeRoom?._id || 'demo-room'} />
+
+        {/* Floating Timer Control */}
+        <FloatingTimerControl />
       </motion.div>
       )}
     </DashboardLayout>

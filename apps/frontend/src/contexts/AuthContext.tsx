@@ -117,7 +117,7 @@
 // apps/frontend/src/contexts/AuthContext.tsx
 // apps/frontend/src/contexts/AuthContext.tsx
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 // import { io, Socket } from "socket.io-client"; // Temporarily disabled
 import { apiService } from "../utils/api"; // Make sure apiService is available

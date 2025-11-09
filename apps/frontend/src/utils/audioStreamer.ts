@@ -44,7 +44,6 @@ export class AudioStreamer {
   private lastPartialTranscript: string = ''; // Track last partial transcript
   private partialTranscriptStartTime: number = 0; // Track when partial transcript started
   private forceFinalTimer: NodeJS.Timeout | null = null; // Timer to force final transcripts
-  private isMobileChromeBlocked = false; // Flag to completely block MediaRecorder on mobile Chrome
   
   // Simple mobile speech recognition (based on working To-Do List pattern)
   private simpleMobileSpeechRecognition: any = null;
@@ -53,6 +52,8 @@ export class AudioStreamer {
   private mobileContinuousMode = false; // Flag for continuous mobile recording
   private mobileAutoRestartTimer: NodeJS.Timeout | null = null; // Timer to auto-restart speech recognition
   private mobileLastSpeechTime = 0; // Track last speech activity
+  private speechRecognitionRestartCount = 0; // Track restart attempts to prevent infinite loops
+  private maxSpeechRecognitionRestarts = 10; // Maximum restarts before giving up
   
   private config: AudioStreamConfig = {
     sampleRate: 16000, // Vosk optimal sample rate
@@ -85,7 +86,6 @@ export class AudioStreamer {
     
     // CRITICAL: Block MediaRecorder completely on mobile Chrome during initialization
     if (this.isChromeOnMobile()) {
-      this.isMobileChromeBlocked = true;
       console.log('🚫 MOBILE CHROME DETECTED: MediaRecorder functionality completely disabled');
       
       // Override MediaRecorder constructor to prevent any usage
@@ -572,9 +572,10 @@ export class AudioStreamer {
       // Mobile Chrome specific configuration to avoid conflicts
       if (this.isChromeOnMobile()) {
         console.log('📱 Applying mobile Chrome optimizations...');
-        // Shorter timeout for mobile stability
-        this.speechRecognition.continuous = false; // Disable continuous for mobile
-        // Will restart automatically on mobile
+        // Keep continuous mode enabled but with mobile-friendly settings
+        this.speechRecognition.continuous = true; // Keep continuous for smoother recording
+        // Add mobile-specific optimizations without breaking continuity
+        this.mobileContinuousMode = true;
       }
 
       console.log('🔧 Speech recognition configured:', {
@@ -586,6 +587,8 @@ export class AudioStreamer {
 
       this.speechRecognition.onstart = () => {
         console.log('🎙️ Speech recognition started successfully!');
+        // Reset restart counter on successful start
+        this.speechRecognitionRestartCount = 0;
         this.callbacks.onTranscript({
           type: 'partial',
           meetingId: this.meetingId,
@@ -790,15 +793,28 @@ export class AudioStreamer {
           timestamp: Date.now()
         });
         
-        // Restart if we're still recording
+        // Restart if we're still recording - with improved timing and restart limiting
         if (this.isRecording && this.speechRecognition) {
-          console.log('🔄 Restarting speech recognition...');
+          console.log('🔄 Speech recognition ended, checking restart...');
+          
+          // Check if we've exceeded max restarts
+          if (this.speechRecognitionRestartCount >= this.maxSpeechRecognitionRestarts) {
+            console.warn('⚠️ Max speech recognition restarts reached, switching to fallback...');
+            this.enableFallbackTranscription();
+            return;
+          }
+          
+          // For mobile Chrome, use longer delay to avoid choppy recording
+          const restartDelay = this.isChromeOnMobile() ? 500 : 100;
+          
           try {
             setTimeout(() => {
               if (this.speechRecognition && this.isRecording) {
+                this.speechRecognitionRestartCount++;
+                console.log(`🔄 Restarting speech recognition (attempt ${this.speechRecognitionRestartCount}/${this.maxSpeechRecognitionRestarts}) after ${restartDelay}ms...`);
                 this.speechRecognition.start();
               }
-            }, 100);
+            }, restartDelay);
           } catch (error) {
             console.warn('Could not restart speech recognition:', error);
             this.enableFallbackTranscription();
@@ -1314,6 +1330,9 @@ export class AudioStreamer {
 
   async startRecording(): Promise<boolean> {
     try {
+      // Reset speech recognition restart counter at start of new recording session
+      this.speechRecognitionRestartCount = 0;
+      
       // Enhanced mobile detection for To-Do List pattern
       const isMobile = this.isMobileDevice();
       
@@ -1364,86 +1383,6 @@ export class AudioStreamer {
       return false;
     }
   }
-
-  private async startMobileFriendlyRecording(): Promise<boolean> {
-    try {
-      console.log('📱 Starting AGGRESSIVE mobile-friendly recording (NO MediaRecorder EVER)...');
-      
-      if (this.isMobileChromeBlocked) {
-        console.log('🚫 Mobile Chrome - MediaRecorder permanently blocked, using SPEECH-ONLY mode');
-        
-        // CRITICAL: NO MediaStream or MediaRecorder setup AT ALL
-        // We'll use ONLY speech recognition to avoid any audio conflicts
-        
-        // Clear any existing MediaRecorder references
-        this.mediaRecorder = null;
-        
-        // Don't request getUserMedia on mobile Chrome to avoid conflicts
-        // Speech recognition will handle microphone access internally
-        
-        // Initialize ONLY speech recognition
-        const speechAvailable = this.initializeSpeechRecognition();
-        if (speechAvailable && this.speechRecognition) {
-          
-          // Enhanced error handling for mobile Chrome
-          this.speechRecognition.onerror = (event: any) => {
-            console.log('🎤 Speech recognition error:', event.error);
-            
-            if (event.error === 'not-allowed') {
-              this.callbacks.onError('Microphone access denied. Please allow microphone permission and try again.');
-            } else if (event.error === 'audio-capture') {
-              console.log('🔄 Audio capture conflict - retrying in 2 seconds...');
-              setTimeout(() => {
-                if (this.speechRecognition && !this.isRecording) {
-                  try {
-                    this.speechRecognition.start();
-                  } catch (retryError) {
-                    console.error('Retry failed:', retryError);
-                  }
-                }
-              }, 2000);
-            } else if (event.error === 'network') {
-              this.callbacks.onError('Network error. Please check your internet connection.');
-            } else {
-              console.warn('Speech recognition non-critical error:', event.error);
-            }
-          };
-          
-          // Start speech recognition with delay for mobile stability
-          setTimeout(() => {
-            if (this.speechRecognition && !this.isRecording) {
-              try {
-                this.speechRecognition.start();
-                console.log('✅ Mobile speech recognition started successfully (MediaRecorder-free)');
-                this.isRecording = true;
-                this.callbacks.onStatusChange('recording');
-              } catch (error) {
-                console.error('❌ Mobile speech recognition start failed:', error);
-                this.callbacks.onError('Speech recognition failed to start. Please refresh and try again.');
-                return false;
-              }
-            }
-          }, 1000); // 1 second delay for mobile stability
-        } else {
-          this.callbacks.onError('Speech recognition not available on this device.');
-          return false;
-        }
-
-        return true;
-        
-      } else {
-        // For non-Chrome mobile browsers, use standard approach
-        return this.startDesktopRecording();
-      }
-      
-    } catch (error) {
-      console.error('Mobile recording failed:', error);
-      this.callbacks.onError('Mobile recording initialization failed');
-      return false;
-    }
-  }
-
-
 
   private async startDesktopRecording(): Promise<boolean> {
     try {
@@ -1764,35 +1703,119 @@ export class AudioStreamer {
   }
 
   cleanup() {
+    console.log('🧹 [AUDIOSTREAMER] Starting complete cleanup for session reset...');
+    
+    // First stop recording
     this.stopRecording();
 
-    // Clean up speech recognition
+    // Clean up speech recognition completely
     if (this.speechRecognition) {
       try {
         this.speechRecognition.stop();
+        this.speechRecognition.onend = null;
+        this.speechRecognition.onerror = null;
+        this.speechRecognition.onresult = null;
+        this.speechRecognition.onspeechstart = null;
+        this.speechRecognition.onspeechend = null;
+        this.speechRecognition.onstart = null;
       } catch (error) {
-        console.warn('Error stopping speech recognition during cleanup:', error);
+        console.warn('⚠️ Error stopping speech recognition during cleanup:', error);
       }
       this.speechRecognition = null;
     }
 
+    // Clean up mobile speech recognition if exists
+    if (this.simpleMobileSpeechRecognition) {
+      try {
+        this.simpleMobileSpeechRecognition.stop();
+        this.simpleMobileSpeechRecognition.onend = null;
+        this.simpleMobileSpeechRecognition.onerror = null;
+        this.simpleMobileSpeechRecognition.onresult = null;
+      } catch (error) {
+        console.warn('⚠️ Error stopping mobile speech recognition during cleanup:', error);
+      }
+      this.simpleMobileSpeechRecognition = null;
+    }
+
+    // Clean up media stream
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('🔇 [AUDIOSTREAMER] Stopped media track:', track.kind);
+      });
       this.mediaStream = null;
     }
 
+    // Clean up media recorder
+    if (this.mediaRecorder) {
+      try {
+        if (this.mediaRecorder.state !== 'inactive') {
+          this.mediaRecorder.stop();
+        }
+        this.mediaRecorder.ondataavailable = null;
+        this.mediaRecorder.onstart = null;
+        this.mediaRecorder.onstop = null;
+        this.mediaRecorder.onerror = null;
+      } catch (error) {
+        console.warn('⚠️ Error stopping media recorder during cleanup:', error);
+      }
+      this.mediaRecorder = null;
+    }
+
+    // Clean up websocket
     if (this.websocket) {
-      this.websocket.close();
+      try {
+        this.websocket.onmessage = null;
+        this.websocket.onopen = null;
+        this.websocket.onclose = null;
+        this.websocket.onerror = null;
+        this.websocket.close();
+      } catch (error) {
+        console.warn('⚠️ Error closing websocket during cleanup:', error);
+      }
       this.websocket = null;
     }
 
+    // Clean up audio context
     if (this.audioContext) {
-      this.audioContext.close();
+      try {
+        this.audioContext.close();
+      } catch (error) {
+        console.warn('⚠️ Error closing audio context during cleanup:', error);
+      }
       this.audioContext = null;
     }
 
+    // Clear all timers
+    if (this.forceFinalTimer) {
+      clearTimeout(this.forceFinalTimer);
+      this.forceFinalTimer = null;
+    }
+
+    if (this.mobileSegmentTimer) {
+      clearTimeout(this.mobileSegmentTimer);
+      this.mobileSegmentTimer = null;
+    }
+
+    if (this.mobileAutoRestartTimer) {
+      clearTimeout(this.mobileAutoRestartTimer);
+      this.mobileAutoRestartTimer = null;
+    }
+
+    // Reset all state flags
+    this.isRecording = false;
     this.isConnected = false;
+    this.isMobileSpeechActive = false;
     this.reconnectAttempts = 0;
+    this.speechRecognitionRestartCount = 0;
+    
+    // Clear buffers
+    this.transcriptBuffer = [];
+    this.lastPartialTranscript = '';
+    this.partialTranscriptStartTime = 0;
+    this.mobileLastSpeechTime = 0;
+
+    console.log('✅ [AUDIOSTREAMER] Complete cleanup finished - ready for fresh session');
   }
 
   getStatus() {

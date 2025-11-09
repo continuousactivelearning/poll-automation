@@ -33,7 +33,6 @@ const CreatePollPage: React.FC = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [students, setStudents] = useState<StudentInvite[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [isSendingInvites, setIsSendingInvites] = useState(false)
   const [invitesSent, setInvitesSent] = useState(false)
   const [roomName, setRoomName] = useState("")
@@ -51,7 +50,6 @@ const CreatePollPage: React.FC = () => {
       return
     }
 
-    setIsLoading(true)
     setErrors({})
 
     try {
@@ -84,8 +82,6 @@ const CreatePollPage: React.FC = () => {
       setErrors({ csv: error instanceof Error ? error.message : "Failed to parse the file" })
       setStudents([])
       setCsvFile(null)
-    } finally {
-      setIsLoading(false)
     }
   }, [])
 

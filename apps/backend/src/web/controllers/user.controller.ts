@@ -141,7 +141,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     }
 
     // const isMatch = await bcrypt.compare(currentPassword, user.password);
-    const storedHash = user.password as string | undefined;
+     const storedHash = user.password as string | undefined;
     if (!storedHash) {
       res.status(400).json({ message: "Account does not have a password set." });
       return;
