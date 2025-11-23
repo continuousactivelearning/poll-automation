@@ -35,7 +35,9 @@ class TimerQuestionsService {
     }
     
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro-latest' });
+    // Use gemini-2.5-flash model (same as GeminiService for consistency)
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    console.log('✅ [TIMER-QUESTIONS] Using gemini-2.5-flash model');
   }
 
   /**
