@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcript Capture Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 10px 10px 0;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.danger {
+            background: #dc3545;
+        }
+        .button.danger:hover {
+            background: #c82333;
+        }
+        .button.success {
+            background: #28a745;
+        }
+        .button.success:hover {
+            background: #218838;
+        }
+        .output {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .transcript-count {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Transcript Capture Test</h1>
+        <p>This page tests the automatic capture of <code>[AUDIOCAPTURE]</code> console messages into localStorage.</p>
+        
+        <div class="test-section">
+            <h3>Test Console Capture</h3>
+            <p>Click the button below to simulate the exact console message format from your AudioCapture system:</p>
+            <button class="button" onclick="runTranscriptTest()">🧪 Run Transcript Capture Test</button>
+            <button class="button" onclick="addMultipleTranscripts()">📝 Add Multiple Test Transcripts</button>
+            <button class="button danger" onclick="clearTranscripts()">🗑️ Clear All Transcripts</button>
+        </div>
+
+        <div class="test-section">
+            <h3>LocalStorage Status</h3>
+            <button class="button success" onclick="checkStorageStatus()">🔍 Check Storage Status</button>
+            <div id="storageStatus" class="transcript-count"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Console Output</h3>
+            <div id="consoleOutput" class="output">Console output will appear here...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>AI Question Capability Check</h3>
+            <p>Check if the captured transcripts are sufficient for AI question generation:</p>
+            <button class="button" onclick="checkQuestionCapability()">🧠 Check AI Readiness</button>
+            <div id="capabilityStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        // Capture console output and display it
+        const originalConsoleLog = console.log;
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        console.log = (...args) => {
+            originalConsoleLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleOutput.textContent += new Date().toLocaleTimeString() + ' | ' + message + '\n';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+
+        // Import the transcript capture functionality (simplified version)
+        class LocalTranscriptManager {
+            static getInstance() {
+                if (!this.instance) {
+                    this.instance = new LocalTranscriptManager();
+                }
+                return this.instance;
+            }
+
+            addTranscript(transcript) {
+                const stored = localStorage.getItem('local-transcripts');
+                const transcripts = stored ? JSON.parse(stored) : [];
+                
+                const newTranscript = {
+                    id: `transcript-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    ...transcript
+                };
+                
+                transcripts.push(newTranscript);
+                localStorage.setItem('local-transcripts', JSON.stringify(transcripts));
+                console.log(`✅ [STORAGE] Added transcript: ${newTranscript.text.substring(0, 50)}...`);
+                return newTranscript;
+            }
+
+            getTranscripts(meetingId = null) {
+                const stored = localStorage.getItem('local-transcripts');
+                if (!stored) return [];
+                
+                const transcripts = JSON.parse(stored);
+                return meetingId ? transcripts.filter(t => t.meetingId === meetingId) : transcripts;
+            }
+
+            getTranscriptSummary(meetingId) {
+                const transcripts = this.getTranscripts(meetingId);
+                const totalWords = transcripts.reduce((sum, t) => sum + t.text.split(' ').length, 0);
+                
+                return {
+                    totalRecords: transcripts.length,
+                    totalWords,
+                    fullTextLength: transcripts.reduce((sum, t) => sum + t.text.length, 0),
+                    averageWordsPerMinute: totalWords / Math.max(1, transcripts.length),
+                    totalDuration: transcripts.length * 30, // Estimate 30 seconds per transcript
+                    readyForAI: totalWords >= 100 && transcripts.length >= 3
+                };
+            }
+
+            clearTranscripts(meetingId = null) {
+                if (meetingId) {
+                    const stored = localStorage.getItem('local-transcripts');
+                    if (stored) {
+                        const transcripts = JSON.parse(stored);
+                        const filtered = transcripts.filter(t => t.meetingId !== meetingId);
+                        localStorage.setItem('local-transcripts', JSON.stringify(filtered));
+                    }
+                } else {
+                    localStorage.removeItem('local-transcripts');
+                }
+            }
+        }
+
+        // Setup console capture for [AUDIOCAPTURE] messages
+        function setupConsoleCapture() {
+            const transcriptManager = LocalTranscriptManager.getInstance();
+            
+            const originalLog = console.log;
+            console.log = (...args) => {
+                originalLog.apply(console, args);
+                
+                const message = args.join(' ');
+                
+                // Look for [AUDIOCAPTURE] transcript messages
+                if (message.includes('[AUDIOCAPTURE] Received transcript:') && args.length >= 2) {
+                    try {
+                        const transcriptObject = args[1];
+                        
+                        if (transcriptObject && 
+                            typeof transcriptObject === 'object' && 
+                            transcriptObject.text && 
+                            transcriptObject.type === 'final' &&
+                            transcriptObject.text.trim().length > 5) {
+                            
+                            console.log(`🎤 [AUTO-CAPTURE] Capturing AUDIOCAPTURE transcript: "${transcriptObject.text.substring(0, 50)}..."`);
+                            
+                            const transcript = {
+                                text: transcriptObject.text.trim(),
+                                timestamp: transcriptObject.timestamp || Date.now(),
+                                speaker: transcriptObject.role === 'host' ? 'host' : 'guest',
+                                participantId: transcriptObject.participantId || `${transcriptObject.role}-${Date.now()}`,
+                                meetingId: transcriptObject.meetingId || 'test-room-id',
+                                confidence: 0.9
+                            };
+
+                            transcriptManager.addTranscript(transcript);
+                            
+                            // Trigger update event
+                            window.dispatchEvent(new CustomEvent('transcript-captured', {
+                                detail: { 
+                                    text: transcript.text, 
+                                    speaker: transcript.speaker, 
+                                    timestamp: transcript.timestamp,
+                                    meetingId: transcript.meetingId 
+                                }
+                            }));
+                            
+                            // Update display
+                            setTimeout(checkStorageStatus, 100);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to parse AUDIOCAPTURE transcript:', error);
+                    }
+                }
+            };
+        }
+
+        // Test functions
+        function runTranscriptTest() {
+            console.log("🧪 [TEST] Starting transcript capture test...");
+            
+            const testTranscript = {
+                "text": "Artificial Intelligence has revolutionized the way we interact with technology today. Machine learning algorithms can now process vast amounts of data and provide insights that were previously impossible to obtain. From natural language processing to computer vision, AI applications are becoming increasingly sophisticated and are being integrated into various industries including healthcare, finance, and automotive.",
+                "type": "final",
+                "timestamp": Date.now(),
+                "meetingId": "test-room-id",
+                "participantId": "host-123",
+                "role": "host"
+            };
+
+            console.log("[AUDIOCAPTURE] Received transcript:", testTranscript);
+            
+            setTimeout(() => {
+                checkStorageStatus();
+            }, 500);
+        }
+
+        function addMultipleTranscripts() {
+            console.log("🧪 [TEST] Adding multiple test transcripts...");
+            
+            const transcripts = [
+                {
+                    "text": "The integration of AI in education has opened up new possibilities for personalized learning experiences. Students can now receive customized content based on their learning patterns.",
+                    "type": "final", 
+                    "timestamp": Date.now(),
+                    "meetingId": "test-room-id",
+                    "participantId": "guest-456",
+                    "role": "guest"
+                },
+                {
+                    "text": "However, we must also consider the ethical implications of artificial intelligence and ensure responsible development. Privacy concerns and algorithmic bias are important issues to address.",
+                    "type": "final",
+                    "timestamp": Date.now() + 1000, 
+                    "meetingId": "test-room-id",
+                    "participantId": "host-123", 
+                    "role": "host"
+                },
+                {
+                    "text": "The future of AI looks promising with ongoing research in areas like deep learning, neural networks, and autonomous systems. These technologies will continue to shape our world.",
+                    "type": "final",
+                    "timestamp": Date.now() + 2000,
+                    "meetingId": "test-room-id",
+                    "participantId": "guest-456",
+                    "role": "guest"
+                }
+            ];
+            
+            transcripts.forEach((transcript, index) => {
+                setTimeout(() => {
+                    console.log("[AUDIOCAPTURE] Received transcript:", transcript);
+                }, index * 500);
+            });
+            
+            setTimeout(() => {
+                checkStorageStatus();
+                checkQuestionCapability();
+            }, 2000);
+        }
+
+        function clearTranscripts() {
+            const manager = LocalTranscriptManager.getInstance();
+            manager.clearTranscripts();
+            console.log("🗑️ [CLEAR] All transcripts cleared from localStorage");
+            checkStorageStatus();
+            
+            document.getElementById('capabilityStatus').innerHTML = '';
+        }
+
+        function checkStorageStatus() {
+            const manager = LocalTranscriptManager.getInstance();
+            const allTranscripts = manager.getTranscripts();
+            const testRoomTranscripts = manager.getTranscripts('test-room-id');
+            
+            const statusDiv = document.getElementById('storageStatus');
+            
+            if (allTranscripts.length === 0) {
+                statusDiv.innerHTML = '<div class="status error">❌ No transcripts found in localStorage</div>';
+            } else {
+                const summary = manager.getTranscriptSummary('test-room-id');
+                
+                statusDiv.innerHTML = `
+                    <div class="status success">✅ Transcripts found in localStorage</div>
+                    <p><strong>Total transcripts:</strong> ${allTranscripts.length}</p>
+                    <p><strong>Test room transcripts:</strong> ${testRoomTranscripts.length}</p>
+                    <p><strong>Total words:</strong> ${summary.totalWords}</p>
+                    <p><strong>Ready for AI:</strong> ${summary.readyForAI ? '✅ Yes' : '❌ No (need more content)'}</p>
+                    <details>
+                        <summary>View transcript details</summary>
+                        <pre>${JSON.stringify(testRoomTranscripts, null, 2)}</pre>
+                    </details>
+                `;
+            }
+        }
+
+        function checkQuestionCapability() {
+            const manager = LocalTranscriptManager.getInstance();
+            const summary = manager.getTranscriptSummary('test-room-id');
+            const statusDiv = document.getElementById('capabilityStatus');
+            
+            if (summary.totalWords >= 100 && summary.totalRecords >= 3) {
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        🧠 ✅ Ready for AI Question Generation!<br>
+                        📊 ${summary.totalWords} words across ${summary.totalRecords} transcripts<br>
+                        🎯 This is sufficient content for generating meaningful questions
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        🧠 ❌ Not ready for AI Question Generation<br>
+                        📊 Currently: ${summary.totalWords} words across ${summary.totalRecords} transcripts<br>
+                        🎯 Need: At least 100 words and 3 transcripts for good questions
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            setupConsoleCapture();
+            checkStorageStatus();
+            console.log('🚀 [INIT] Transcript capture test page loaded and ready');
+        });
+
+        // Listen for transcript events
+        window.addEventListener('transcript-captured', (event) => {
+            console.log('🎉 [EVENT] Transcript captured event received:', event.detail);
+        });
+    </script>
+</body>
+</html>

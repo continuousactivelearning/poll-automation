@@ -121,7 +121,8 @@ const DashboardHomePage = () => {
         </div>
       </WelcomeSection>
       {/* Today's Highlights and Quick Actions */}
-      <QuickAccessCards onSectionChange={(section: string) => { /* handle section change here */ }} />
+      <QuickAccessCards onSectionChange={(_: string) => { /* handle section change here */ }} />
+
       {/* Recent Activity */}
       <GlassCard className="p-6">
         <h3 className="text-xl font-bold text-white mb-4">Recent Activity</h3>

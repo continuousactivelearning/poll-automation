@@ -95,7 +95,8 @@ const HostDashboard = () => {
   }, []);
 
   // Recent sessions (host-specific)
-  const { socket, user } = useAuth();
+  const { socket } = useAuth();
+
   const [connStatus, setConnStatus] = useState<'active' | 'connecting' | 'disconnected'>('connecting');
   const [recentSessions, setRecentSessions] = useState<Array<{ sessionId?: string; sessionName?: string; sessionEndedAt?: string; accuracyRate?: number; studentCount?: number }>>([]);
 

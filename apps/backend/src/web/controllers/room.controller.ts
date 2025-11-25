@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { Room } from '../models/room.model';
 import { User } from '../models/user.model';
 import { sendEmail } from '../utils/email';
+import { Poll } from '../models/poll.model';
 import * as xlsx from 'xlsx';
 import crypto from 'crypto';
 
@@ -196,3 +197,24 @@ export const destroyRoom = async (req: Request, res: Response) => {
 };
 export const getRoomByCode = getActiveRoomByCode;
 
+// Get count of all active sessions that have polls
+export const getAvailableSessionsWithPolls = async (req: Request, res: Response) => {
+    try {
+        // More efficient approach using aggregation
+        const activeSessions = await Room.find({ isActive: true }).select('_id');
+        
+        // Get unique session IDs that have polls
+        const sessionsWithPolls = await Poll.distinct('sessionId', {
+            sessionId: { $in: activeSessions.map(s => s._id) }
+        });
+
+        res.json({ 
+            totalActiveSessions: activeSessions.length,
+            sessionsWithPolls: sessionsWithPolls.length,
+            availablePolls: sessionsWithPolls.length 
+        });
+    } catch (error: any) {
+        console.error('Error fetching available sessions with polls:', error);
+        res.status(500).json({ message: 'Error fetching available sessions.', error: error.message });
+    }
+};

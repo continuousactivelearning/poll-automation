@@ -1,9 +1,9 @@
 // apps/backend/src/web/routes/sessionReport.routes.ts
 
 import { Router } from 'express';
-import { getHostSessionReports, getSessionReportById, getReportBySessionId, getMyJoinedSessionsCount, getMyRecentSessions } from '../controllers/sessionReport.controller';
+// import { getHostSessionReports, getSessionReportById, getReportBySessionId, getMyJoinedSessionsCount, getMyRecentSessions } from '../controllers/sessionReport.controller';
 import { authenticate } from '../middlewares/auth.middleware';
-
+import { getHostSessionReports, getSessionReportById, getReportBySessionId, getMyJoinedSessionsCount, getMyRecentSessions, getStudentPollHistory, getDebugSessionData } from '../controllers/sessionReport.controller';
 const router = Router();
 
 router.get('/', authenticate, getHostSessionReports);
@@ -44,6 +44,23 @@ router.get('/me', authenticate, async (req, res, next) => {
 router.get('/me/recent', authenticate, async (req, res, next) => {
   try {
     await getMyRecentSessions(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
+// Student: get detailed poll history
+router.get('/me/polls', authenticate, async (req, res, next) => {
+  try {
+    await getStudentPollHistory(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Debug: get raw session data for troubleshooting
+router.get('/me/debug', authenticate, async (req, res, next) => {
+  try {
+    await getDebugSessionData(req, res);
   } catch (err) {
     next(err);
   }

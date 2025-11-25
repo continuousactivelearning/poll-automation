@@ -16,6 +16,7 @@ const WelcomeSection: React.FC<{ children?: React.ReactNode }> = ({ children }) 
   const [accuracyRate, setAccuracyRate] = useState<number | null>(null)
   const [availablePolls, setAvailablePolls] = useState<number | null>(null)
   const [totalSessionsJoined, setTotalSessionsJoined] = useState<number | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -64,58 +65,26 @@ const WelcomeSection: React.FC<{ children?: React.ReactNode }> = ({ children }) 
       }
     }
 
-    const fetchAvailablePolls = async () => {
+    const fetchAvailablePolls = async (showRefreshing = false) => {
       try {
-        // Determine sessionId from activeRoom (supports _id or id)
-        let sessionId: string | undefined = undefined
-        if (activeRoom) {
-          sessionId = (activeRoom as any)._id || (activeRoom as any).id || (activeRoom as any).sessionId
+        if (showRefreshing && mounted) setIsRefreshing(true)
+        
+        // Fetch system-wide count of active sessions that have polls
+        const pollsRes = await apiService.getAvailableSessionsWithPolls()
+        const data = pollsRes.data
+        const availableSessionsCount = data.sessionsWithPolls || data.availablePolls || 0
+        
+        console.debug('WelcomeSection: fetched available sessions with polls', data, 'count=', availableSessionsCount)
+        if (mounted) {
+          setAvailablePolls(availableSessionsCount)
+          setIsRefreshing(false)
         }
-
-        // If no activeRoom in context (student view), try reading the stored room from localStorage as a fallback
-        if (!sessionId) {
-          try {
-            const stored = localStorage.getItem('pollgen_active_room')
-            if (stored) {
-              const parsed = JSON.parse(stored)
-              console.debug('WelcomeSection: found stored active room in localStorage', parsed)
-              sessionId = parsed?._id || parsed?.id || parsed?.sessionId
-            }
-          } catch (e) {
-            console.debug('WelcomeSection: failed to parse stored active room', e)
-          }
-        }
-
-        // If still no sessionId, try fetching current room from backend (may be host-only)
-        if (!sessionId) {
-          try {
-            const roomResp = await apiService.getActiveRoom()
-            const roomData = roomResp.data
-            console.debug('WelcomeSection: fetched active room from API', roomData)
-            sessionId = roomData?._id || roomData?.id
-          } catch (e) {
-            console.debug('WelcomeSection: no active room from API for student', e)
-          }
-        }
-
-        if (sessionId) {
-          const pollsRes = await apiService.getHostPolls(sessionId)
-          // Accept responses that are arrays or objects with a 'polls' property
-          let polls: any[] = []
-          if (Array.isArray(pollsRes.data)) polls = pollsRes.data
-          else if (Array.isArray(pollsRes.data?.polls)) polls = pollsRes.data.polls
-          else if (Array.isArray(pollsRes.data?.data)) polls = pollsRes.data.data
-          console.debug('WelcomeSection: polls for session', sessionId, 'raw=', pollsRes.data, 'count=', polls.length)
-          if (mounted) setAvailablePolls(polls.length)
-          return
-        }
-
-        // No active session found anywhere
-        console.debug('WelcomeSection: no active session found, setting available polls to 0')
-        if (mounted) setAvailablePolls(0)
       } catch (err) {
         console.error('Failed to fetch available polls', err)
-        if (mounted) setAvailablePolls(0)
+        if (mounted) {
+          setAvailablePolls(0)
+          setIsRefreshing(false)
+        }
       }
     }
 
@@ -132,11 +101,17 @@ const WelcomeSection: React.FC<{ children?: React.ReactNode }> = ({ children }) 
       }
     }
 
-  fetchUserStats()
-  fetchAvailablePolls()
-  fetchSessionsJoined()
+    fetchUserStats()
+    fetchAvailablePolls()
+    fetchSessionsJoined()
 
-    return () => { mounted = false }
+    // Set up periodic refresh for available polls (every 30 seconds)
+    const pollsInterval = setInterval(() => fetchAvailablePolls(true), 30000)
+
+    return () => { 
+      mounted = false
+      clearInterval(pollsInterval)
+    }
   }, [user, activeRoom])
 
   const stats = [
@@ -170,10 +145,10 @@ const WelcomeSection: React.FC<{ children?: React.ReactNode }> = ({ children }) 
     },
     {
       label: "Available Polls",
-      value: availablePolls !== null ? String(availablePolls) : "—",
+      value: isRefreshing ? "⟳" : availablePolls !== null ? (availablePolls === 0 ? "None" : String(availablePolls)) : "—",
       icon: Users,
       color: "from-orange-500 to-red-600",
-      change: "",
+      change: isRefreshing ? "Refreshing..." : (availablePolls !== null && availablePolls > 0 ? "Live Sessions" : ""),
     },
   ]
 

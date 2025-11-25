@@ -76,7 +76,8 @@ interface QuickAccessCardsProps {
   onSectionChange: (section: string) => void
 }
 
-const QuickAccessCards: React.FC<QuickAccessCardsProps> = ({ onSectionChange }) => {
+const QuickAccessCards: React.FC<QuickAccessCardsProps> = ({ onSectionChange: _ }) => {
+
   const navigate = useNavigate()
   const quickActions = [
     {
@@ -113,7 +114,7 @@ const QuickAccessCards: React.FC<QuickAccessCardsProps> = ({ onSectionChange }) 
     <GlassCard className="p-6">
       <h3 className="text-xl font-bold text-white mb-6">Quick Actions</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {quickActions.map((action, index) => (
+        {quickActions.map((action) => (
           <button
             key={action.title}
             onClick={action.action}

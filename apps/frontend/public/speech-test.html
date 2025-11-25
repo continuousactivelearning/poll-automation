@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Speech API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        #transcript { 
+            min-height: 100px; 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Web Speech API Test</h1>
+    
+    <div id="browser-info" class="status info">
+        <h3>Browser Information</h3>
+        <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+        <p><strong>Language:</strong> <span id="language"></span></p>
+        <p><strong>Platform:</strong> <span id="platform"></span></p>
+    </div>
+
+    <div id="api-support" class="status">
+        <h3>API Support</h3>
+        <p><strong>MediaDevices:</strong> <span id="mediaDevices"></span></p>
+        <p><strong>getUserMedia:</strong> <span id="getUserMedia"></span></p>
+        <p><strong>SpeechRecognition:</strong> <span id="speechRecognition"></span></p>
+        <p><strong>webkitSpeechRecognition:</strong> <span id="webkitSpeechRecognition"></span></p>
+    </div>
+
+    <div>
+        <button id="startBtn" onclick="startSpeechTest()">Start Speech Test</button>
+        <button id="stopBtn" onclick="stopSpeechTest()" disabled>Stop Speech Test</button>
+    </div>
+
+    <div id="status" class="status info">
+        <h3>Status</h3>
+        <p id="currentStatus">Ready to test</p>
+    </div>
+
+    <div>
+        <h3>Live Transcript</h3>
+        <div id="transcript">No speech detected yet...</div>
+    </div>
+
+    <div>
+        <h3>Console Logs</h3>
+        <div id="logs" style="height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #000; color: #0f0; font-family: monospace;">
+        </div>
+    </div>
+
+    <script>
+        let recognition = null;
+        let isListening = false;
+
+        // Override console.log to show in the UI
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addLog(message, type = 'log') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f00' : type === 'warn' ? '#ff0' : '#0f0';
+            logs.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        console.log = (...args) => {
+            originalLog(...args);
+            addLog(args.join(' '), 'log');
+        };
+        
+        console.error = (...args) => {
+            originalError(...args);
+            addLog(args.join(' '), 'error');
+        };
+        
+        console.warn = (...args) => {
+            originalWarn(...args);
+            addLog(args.join(' '), 'warn');
+        };
+
+        // Initialize page
+        window.onload = function() {
+            // Display browser info
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            document.getElementById('language').textContent = navigator.language;
+            document.getElementById('platform').textContent = navigator.platform;
+            
+            // Check API support
+            document.getElementById('mediaDevices').textContent = navigator.mediaDevices ? '✅ Supported' : '❌ Not supported';
+            document.getElementById('getUserMedia').textContent = navigator.mediaDevices?.getUserMedia ? '✅ Supported' : '❌ Not supported';
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            document.getElementById('speechRecognition').textContent = window.SpeechRecognition ? '✅ Supported' : '❌ Not supported';
+            document.getElementById('webkitSpeechRecognition').textContent = window.webkitSpeechRecognition ? '✅ Supported' : '❌ Not supported';
+            
+            // Set overall support status
+            const apiSupport = document.getElementById('api-support');
+            if (SpeechRecognition && navigator.mediaDevices?.getUserMedia) {
+                apiSupport.className = 'status success';
+                console.log('✅ All required APIs are supported');
+            } else {
+                apiSupport.className = 'status error';
+                console.error('❌ Missing required APIs');
+            }
+        };
+
+        async function startSpeechTest() {
+            try {
+                updateStatus('Requesting microphone permissions...', 'info');
+                console.log('🎙️ Starting speech recognition test...');
+                
+                // Request microphone permission first
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('✅ Microphone permission granted');
+                
+                // Initialize speech recognition
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    throw new Error('Speech recognition not supported');
+                }
+                
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                
+                console.log('🔧 Speech recognition configured:', {
+                    continuous: recognition.continuous,
+                    interimResults: recognition.interimResults,
+                    lang: recognition.lang
+                });
+                
+                recognition.onstart = function() {
+                    console.log('🎯 Speech recognition started successfully');
+                    updateStatus('Listening... Please speak into your microphone', 'success');
+                    isListening = true;
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                };
+                
+                recognition.onresult = function(event) {
+                    console.log('📝 Speech recognition result:', event);
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        transcript += result.transcript;
+                        console.log(`Result ${i}: "${result.transcript}" (Final: ${result.isFinal}, Confidence: ${result[0].confidence || 'N/A'})`);
+                    }
+                    document.getElementById('transcript').textContent = transcript || 'Listening...';
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('❌ Speech recognition error:', event.error, event);
+                    updateStatus(`Error: ${event.error}`, 'error');
+                    
+                    const errorMessages = {
+                        'not-allowed': 'Microphone access denied. Please allow microphone permissions.',
+                        'no-speech': 'No speech detected. Please speak into your microphone.',
+                        'audio-capture': 'Audio capture failed. Check your microphone.',
+                        'network': 'Network error. Check your internet connection.'
+                    };
+                    
+                    const message = errorMessages[event.error] || `Unknown error: ${event.error}`;
+                    alert(message);
+                };
+                
+                recognition.onend = function() {
+                    console.log('🔚 Speech recognition ended');
+                    if (isListening) {
+                        console.log('🔄 Restarting speech recognition...');
+                        setTimeout(() => {
+                            if (recognition && isListening) {
+                                recognition.start();
+                            }
+                        }, 100);
+                    }
+                };
+                
+                console.log('🚀 Starting speech recognition...');
+                recognition.start();
+                
+            } catch (error) {
+                console.error('❌ Failed to start speech test:', error);
+                updateStatus(`Failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function stopSpeechTest() {
+            console.log('⏹️ Stopping speech recognition test...');
+            isListening = false;
+            
+            if (recognition) {
+                recognition.stop();
+                recognition = null;
+            }
+            
+            updateStatus('Stopped', 'info');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('transcript').textContent = 'Test stopped.';
+        }
+        
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('currentStatus');
+            
+            statusText.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+    </script>
+</body>
+</html>
