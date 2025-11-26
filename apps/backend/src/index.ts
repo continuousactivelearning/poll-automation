@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import { setupWebSocket } from './websocket/setup';
 import ASRWebSocketServer from './websocket/asrHandler';
 import ServiceManager from './services/serviceManager';
+import { achievementTracker } from './services/achievementTracker';
 
 const PORT = process.env.PORT || 8000;
 
@@ -51,6 +52,10 @@ setupWebSocket(io);
 
 // Initialize services with Socket.IO instance
 ServiceManager.getInstance().initializeServices(io);
+
+// Initialize Achievement Tracker with Socket.IO
+achievementTracker.initialize(io);
+console.log('🏆 Real-time Achievement System enabled');
 
 // Initialize ASR WebSocket Server
 const asrServer = new ASRWebSocketServer(server);

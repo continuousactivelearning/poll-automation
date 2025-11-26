@@ -209,6 +209,9 @@ export const apiService = {
   getMyRecentSessions: () => api.get('/session-reports/me/recent'),
    getStudentPollHistory: () => api.get('/session-reports/me/polls'),
   getDebugSessionData: () => api.get('/session-reports/me/debug'),
+  // Achievements
+  getUserAchievements: () => api.get('/achievements/me'),
+  getDebugAchievementData: () => api.get('/achievements/debug'),
   // Leaderboard (aggregated per-user stats)
   getLeaderboard: () => api.get('/reports/leaderboard'),
   getHostStats: () => api.get('/stats/host'),

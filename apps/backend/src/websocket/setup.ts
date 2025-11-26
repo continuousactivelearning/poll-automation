@@ -7,6 +7,7 @@ import { Poll } from '../web/models/poll.model';
 import { Report } from '../web/models/report.model';
 import { SessionReport } from '../web/models/sessionReport.model'; // <-- NEW IMPORT
 import { isTokenExpired } from '../web/utils/jwt';
+import { achievementTracker } from '../services/achievementTracker'; // Achievement tracking
 
 import mongoose from 'mongoose';
 
@@ -425,6 +426,13 @@ export const setupWebSocket = (io: Server) => {
         });
         await report.save();
         console.log('✅ [VOTE] Report saved successfully');
+        
+        // Check for achievements after each vote
+        await achievementTracker.checkPollAchievements(
+            socket.userId as string,
+            roomId,
+            isCorrect
+        );
     } catch (error) {
         console.error('❌ [VOTE] Error saving report:', error);
         return socket.emit('vote-error', { message: "Failed to save vote" });
@@ -568,6 +576,15 @@ socket.on('host-end-session', async (roomId: string) => {
         await generateAndSaveSessionReport(roomId);
 
         const sessionId = (room._id as mongoose.Types.ObjectId | string).toString();
+
+        // --- 2.5. Check achievements for all participants after session ends ---
+        const allReports = await Report.find({ roomId }).distinct('userId');
+        for (const userId of allReports) {
+            await achievementTracker.checkSessionAchievements(
+                userId.toString(),
+                sessionId
+            );
+        }
 
         // --- 3. First, notify the HOST specifically (before disconnecting students) ---
         socket.emit('session-ended-host', { 

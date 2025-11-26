@@ -29,6 +29,8 @@ import pollConfigRoutes from './web/routes/poll.routes';
 import sessionReportRoutes from './web/routes/sessionReport.routes'; // <-- NEW IMPORT
 import zohoRootRoutes from './web/routes/zoho-root.routes'; // Zoho OAuth root routes
 import { configureGoogleStrategy, configureZohoStrategy } from './config/passport'; // <-- NEW IMPORT
+import achievementsRoutes from './web/routes/achievements.routes'; // <-- ACHIEVEMENTS IMPORT
+
 
 dotenv.config();
 connectDB();
@@ -180,6 +182,9 @@ app.use('/api/segments', segmentsRoutes); // Transcript segments
 app.use('/api/questions', questionsRoutes); // Timer-based questions
 app.use('/api/timer-transcripts', timerTranscriptsRoutes); // Timer-based transcript storage
 app.use('/api/session-reports', sessionReportRoutes); // <-- NEW ROUTE
+app.use('/api/achievements', achievementsRoutes); // <-- ACHIEVEMENTS ROUTE
+
+
 app.use('/api/stats', statsRoutes); // <-- host/dashboard stats
 
 app.use(errorHandler);
