@@ -38,7 +38,10 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { User } from "../models/user.model";
 import { extractIdFromToken } from "../utils/jwt";
-import { uploadStream } from "../utils/cloudinary";
+// import { uploadStream } from "../utils/cloudinary";
+import { uploadStream, deleteImage, extractPublicIdFromUrl } from "../utils/cloudinary";
+
+
 import { sendResetEmail, sendEmail } from "../utils/email";
 
 class ValidationError extends Error {
@@ -125,6 +128,53 @@ export const uploadAvatar = async (req: Request, res: Response): Promise<void> =
   } catch (error) {
     console.error("Avatar upload error:", error);
     res.status(500).json({ message: "Internal Server Error during avatar upload." });
+  }
+};
+export const deleteAvatar = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user.id;
+
+    // Get current user to retrieve the avatar URL
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+
+    if (!user.avatar || user.avatar === "https://www.gravatar.com/avatar/?d=mp") {
+      res.status(400).json({ message: "No custom avatar to delete." });
+      return;
+    }
+
+    // Extract public_id from Cloudinary URL
+    const publicId = extractPublicIdFromUrl(user.avatar);
+    
+    if (publicId) {
+      // Delete from Cloudinary
+      try {
+        await deleteImage(publicId);
+        console.log(`Successfully deleted image with public_id: ${publicId}`);
+      } catch (cloudinaryError) {
+        console.warn(`Failed to delete from Cloudinary:`, cloudinaryError);
+        // Continue with database update even if Cloudinary deletion fails
+      }
+    }
+
+    // Reset avatar to default in database
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { avatar: "https://www.gravatar.com/avatar/?d=mp" },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Avatar deleted successfully",
+      avatar: updatedUser?.avatar,
+    });
+  } catch (error) {
+    console.error("Avatar deletion error:", error);
+    res.status(500).json({ message: "Internal Server Error during avatar deletion." });
   }
 };
 

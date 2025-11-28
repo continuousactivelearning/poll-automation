@@ -61,7 +61,47 @@ export const uploadStream = (buffer: Buffer): Promise<UploadApiResponse | Upload
     streamifier.createReadStream(buffer).pipe(stream);
   });
 };
+// Function to delete an image from Cloudinary using its public_id
+export const deleteImage = (publicId: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.destroy(publicId, (error: any, result: any) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+};
 
+// Helper function to extract public_id from Cloudinary URL
+export const extractPublicIdFromUrl = (url: string): string | null => {
+  try {
+    // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{version}/{public_id}.{format}
+    const urlParts = url.split('/');
+    const uploadIndex = urlParts.findIndex(part => part === 'upload');
+    
+    if (uploadIndex === -1 || uploadIndex + 2 >= urlParts.length) {
+      return null;
+    }
+    
+    // Get the public_id part (skip version if present)
+    let publicIdPart = urlParts.slice(uploadIndex + 1);
+    
+    // Remove version if it's a number (v1234567890)
+    if (publicIdPart[0] && /^v\d+$/.test(publicIdPart[0])) {
+      publicIdPart = publicIdPart.slice(1);
+    }
+    
+    // Join the remaining parts and remove file extension
+    const publicId = publicIdPart.join('/').replace(/\.[^/.]+$/, '');
+    
+    return publicId || null;
+  } catch (error) {
+    console.error('Error extracting public_id from URL:', error);
+    return null;
+  }
+};
 
 // import { v2 as cloudinary } from 'cloudinary';
 // import { Readable } from 'stream';

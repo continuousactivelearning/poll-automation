@@ -118,6 +118,7 @@
 // apps/frontend/src/contexts/AuthContext.tsx
 
 import { createContext, useContext, useState, useEffect } from "react";
+
 import type { ReactNode } from "react";
 // import { io, Socket } from "socket.io-client"; // Temporarily disabled
 import { apiService } from "../utils/api"; // Make sure apiService is available
@@ -278,6 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         newSocket.on('connect_error', (error) => {
           console.log('❌ Socket connection error:', error);
           console.log('🔍 Error details:', error.message);
+
           
           // Handle token expiration specifically
           if (error.message === 'TOKEN_EXPIRED') {
@@ -420,6 +422,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(authToken); // This will trigger the useEffect to connect the socket
     localStorage.setItem("user", JSON.stringify(loggedInUser));
     localStorage.setItem("token", authToken);
+     // Store login timestamp for notification filtering
+    const loginTimestamp = new Date().toISOString();
+    localStorage.setItem("loginTimestamp", loginTimestamp);
+    
+    // Clean up stale notification data on login to prevent old notifications from reappearing
+    const currentUserId = loggedInUser.id;
+    const storedUserId = localStorage.getItem('lastUserId');
+    
+    // If different user or first login, clean notification data
+    if (storedUserId !== currentUserId) {
+      localStorage.removeItem('readNotifications');
+      localStorage.removeItem('deletedNotifications');
+      localStorage.removeItem('previousUserRank');
+      localStorage.removeItem('lastWelcomeNotification');
+      localStorage.setItem('lastUserId', currentUserId);
+      console.log('Cleaned notification data for new/different user');
+    }
+    
+    console.log('User logged in at:', loginTimestamp);
     if (refreshToken) {
       localStorage.setItem("refreshToken", refreshToken);
     }
@@ -448,6 +469,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem(ROOM_STORAGE_KEY);
+     // Clear notification-related data on logout
+    localStorage.removeItem("loginTimestamp");
+    localStorage.removeItem("readNotifications");
+    localStorage.removeItem("deletedNotifications");
+    localStorage.removeItem("previousUserRank");
+    localStorage.removeItem("lastWelcomeNotification");
+    // Keep lastUserId to track user changes on next login
+    
+    console.log('User logged out, notification data cleared');
   };
 
 

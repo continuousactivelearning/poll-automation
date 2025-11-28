@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 import { SessionReport } from '../models/sessionReport.model';
 import { Report } from '../models/report.model';
 import mongoose from 'mongoose';
+import { notificationService } from '../../services/NotificationService';
 
 interface Achievement {
     id: number;
@@ -243,6 +244,9 @@ export const getUserAchievements = async (req: Request, res: Response) => {
             const result = calculateAchievement(achievement, userSessions, userReports, userId);
             return result;
         });
+
+        // Track newly earned achievements for notifications
+        await trackNewAchievements(userId, calculatedAchievements);
 
         // Calculate summary stats
         const earnedAchievements = calculatedAchievements.filter(a => a.earned);
@@ -621,3 +625,83 @@ export const getDebugAchievementData = async (req: Request, res: Response) => {
         });
     }
 };
+
+/**
+ * Track newly earned achievements and create notifications
+ */
+async function trackNewAchievements(userId: string, currentAchievements: Achievement[]): Promise<void> {
+    try {
+        // Get previously tracked achievements from cache/storage
+        // For simplicity, we'll use a basic approach - you could enhance this with Redis or database storage
+        const cacheKey = `achievements_${userId}`;
+        
+        // Get current earned achievements
+        const currentEarned = currentAchievements.filter(a => a.earned);
+        
+        // For production, you'd want to store previous state in Redis/DB
+        // For now, we'll create notifications for all earned achievements on first calculation
+        // and then track changes in subsequent calls
+        
+        // Check if we have previous data (this would be stored in Redis/DB in production)
+        const previousEarnedIds = await getPreviousEarnedAchievements(userId);
+        
+        // Find newly earned achievements
+        const newlyEarned = currentEarned.filter(achievement => 
+            !previousEarnedIds.includes(achievement.id)
+        );
+        
+        // Create notifications for newly earned achievements
+        for (const achievement of newlyEarned) {
+            try {
+                await notificationService.createAchievementNotification(userId, {
+                    _id: achievement.id,
+                    name: achievement.name,
+                    description: achievement.description,
+                    rarity: achievement.rarity,
+                    points: achievement.points,
+                    iconUrl: achievement.icon
+                });
+                
+                console.log(`📧 Created notification for newly earned achievement: ${achievement.name} (User: ${userId})`);
+            } catch (notificationError) {
+                console.error('Failed to create achievement notification:', notificationError);
+                // Continue processing other achievements even if one fails
+            }
+        }
+        
+        // Update stored achievements for next comparison
+        await storePreviousEarnedAchievements(userId, currentEarned.map(a => a.id));
+        
+    } catch (error) {
+        console.error('Failed to track new achievements:', error);
+        // Don't throw error to avoid breaking the main achievements calculation
+    }
+}
+
+/**
+ * Get previously earned achievement IDs (placeholder - implement with Redis/DB)
+ */
+async function getPreviousEarnedAchievements(userId: string): Promise<number[]> {
+    // TODO: Implement with Redis or database storage for production
+    // For now, return empty array (will create notifications for all earned achievements)
+    
+    // Example Redis implementation:
+    // const redis = getRedisClient();
+    // const cached = await redis.get(`user_achievements_${userId}`);
+    // return cached ? JSON.parse(cached) : [];
+    
+    return [];
+}
+
+/**
+ * Store earned achievement IDs for future comparison (placeholder - implement with Redis/DB)  
+ */
+async function storePreviousEarnedAchievements(userId: string, achievementIds: number[]): Promise<void> {
+    // TODO: Implement with Redis or database storage for production
+    
+    // Example Redis implementation:
+    // const redis = getRedisClient();
+    // await redis.set(`user_achievements_${userId}`, JSON.stringify(achievementIds), 'EX', 86400 * 30); // 30 days
+    
+    console.log(`💾 Would store ${achievementIds.length} earned achievements for user ${userId}`);
+}

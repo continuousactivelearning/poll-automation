@@ -183,6 +183,8 @@ export const apiService = {
 
   uploadAvatar: (formData: FormData) =>
     api.post('/users/profile/avatar', formData),
+  deleteAvatar: () =>
+    api.delete('/users/profile/avatar'),
 
   // Polls
   createPoll: (data: any) => api.post('/polls', data),

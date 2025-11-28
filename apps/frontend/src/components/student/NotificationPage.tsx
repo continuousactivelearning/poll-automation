@@ -2,87 +2,20 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Bell, Check, X, Search, Trophy, Users, Settings, Clock, Star, Zap, Filter } from "lucide-react"
+import { Bell, Check, X, Search, Trophy, Users, Settings, Clock, Star, Zap, Filter, AlertCircle } from "lucide-react"
 import GlassCard from "../GlassCard"
-
-interface Notification {
-  id: string
-  type: "achievement" | "poll" | "system" | "social" | "reminder"
-  title: string
-  message: string
-  timestamp: Date
-  isRead: boolean
-  priority: "low" | "medium" | "high"
-  actionUrl?: string
-  metadata?: {
-    pollId?: string
-    achievementType?: string
-    points?: number
-  }
-}
+import { useNotifications } from "../../contexts/NotificationContext"
 
 const NotificationPage: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "1",
-      type: "achievement",
-      title: "New Achievement Unlocked! 🏆",
-      message: 'Congratulations! You\'ve earned the "Quiz Master" badge for answering 50 questions correctly.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      isRead: false,
-      priority: "high",
-      metadata: { achievementType: "Quiz Master", points: 100 },
-    },
-    {
-      id: "2",
-      type: "poll",
-      title: "New Poll Available",
-      message: 'Your instructor has created a new poll: "Understanding React Hooks". Join now to participate!',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      isRead: false,
-      priority: "medium",
-      actionUrl: "/student/join-poll",
-      metadata: { pollId: "poll-123" },
-    },
-    {
-      id: "3",
-      type: "social",
-      title: "Leaderboard Update",
-      message: "You've moved up to 3rd place on the class leaderboard! Keep up the great work!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
-      isRead: true,
-      priority: "medium",
-    },
-    {
-      id: "4",
-      type: "system",
-      title: "System Maintenance",
-      message:
-        "Scheduled maintenance will occur tonight from 2:00 AM to 4:00 AM EST. Some features may be temporarily unavailable.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6),
-      isRead: true,
-      priority: "low",
-    },
-    {
-      id: "5",
-      type: "reminder",
-      title: "Poll Reminder",
-      message: 'Don\'t forget to complete the "JavaScript Fundamentals" poll. It closes in 2 hours!',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8),
-      isRead: false,
-      priority: "high",
-    },
-    {
-      id: "6",
-      type: "achievement",
-      title: "Streak Achievement! 🔥",
-      message: "Amazing! You've maintained a 7-day participation streak. You're on fire!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12),
-      isRead: true,
-      priority: "medium",
-      metadata: { achievementType: "Streak Master", points: 75 },
-    },
-  ])
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
+  } = useNotifications()
 
   const [filter, setFilter] = useState<"all" | "unread" | "achievement" | "poll" | "system" | "social" | "reminder">(
     "all",
@@ -137,17 +70,7 @@ const NotificationPage: React.FC = () => {
     return `${days}d ago`
   }
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) => prev.map((notif) => (notif.id === id ? { ...notif, isRead: true } : notif)))
-  }
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })))
-  }
-
-  const deleteNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id))
-  }
 
   const filteredNotifications = notifications.filter((notif) => {
     const matchesFilter = filter === "all" || (filter === "unread" && !notif.isRead) || notif.type === filter
@@ -160,7 +83,66 @@ const NotificationPage: React.FC = () => {
     return matchesFilter && matchesSearch
   })
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length
+
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-8 space-y-8">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <Bell className="w-8 h-8 text-purple-400 animate-pulse" />
+            <h1 className="text-3xl font-bold text-white">Notifications</h1>
+          </div>
+          <p className="text-gray-400">Loading your latest updates...</p>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+          {[1, 2, 3].map(i => (
+            <GlassCard key={i} className="p-6">
+              <div className="animate-pulse space-y-3">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-gray-600 rounded-lg"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-600 rounded w-1/3"></div>
+                    <div className="h-3 bg-gray-700 rounded w-full"></div>
+                    <div className="h-3 bg-gray-700 rounded w-2/3"></div>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-8 space-y-8">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <AlertCircle className="w-8 h-8 text-red-400" />
+            <h1 className="text-3xl font-bold text-white">Notifications</h1>
+          </div>
+          <p className="text-red-400">{error}</p>
+        </div>
+        
+        <GlassCard className="p-8 text-center">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-white mb-2">Unable to Load Notifications</h3>
+          <p className="text-gray-400 mb-4">There was an error loading your notifications. Please try refreshing the page.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium"
+          >
+            Refresh Page
+          </button>
+        </GlassCard>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8 space-y-8">
@@ -319,8 +301,18 @@ const NotificationPage: React.FC = () => {
                         {/* Action Button */}
                         {notification.actionUrl && (
                           <div className="mt-3">
-                            <button className="px-3 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200">
-                              Take Action
+                            <button 
+                              onClick={() => {
+                                // Handle different action types
+                                if (notification.type === 'poll' && notification.metadata?.pollId) {
+                                  window.location.href = `/student/join-session/${notification.metadata.pollId}`
+                                } else if (notification.actionUrl) {
+                                  window.location.href = notification.actionUrl
+                                }
+                              }}
+                              className="px-3 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200"
+                            >
+                              {notification.type === 'poll' ? 'Join Session' : 'Take Action'}
                             </button>
                           </div>
                         )}

@@ -38,6 +38,8 @@ import NotificationPage from './components/student/NotificationPage';
 import SettingsStudent from './components/student/Settings';
 import StudentLeaderboard from './components/student/StudentLeaderboard';
 import DashboardHomePage from './components/student/DashboardHomePage';
+import { NotificationProvider } from './contexts/NotificationContext';
+
 
 function App() {
   return (
@@ -45,6 +47,9 @@ function App() {
       <AuthProvider>
         <GlobalAudioProvider>
             <LoadingProvider>
+                        <NotificationProvider>
+
+
               <Router>
                 <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
                   <LoadingScreen />
@@ -118,6 +123,9 @@ function App() {
       </Routes>
                 </div>
               </Router>
+                        </NotificationProvider>
+
+
             </LoadingProvider>
         </GlobalAudioProvider>
       </AuthProvider>

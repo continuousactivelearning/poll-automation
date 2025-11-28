@@ -4,7 +4,7 @@ import type React from "react"
 import { Users, Trophy, History, User, Award, Settings, Bell, Home, LogOut, Link } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { useNavigate, useLocation } from "react-router-dom"
-
+import { useNotifications } from "../contexts/NotificationContext"
 interface StudentSidebarProps {
   isOpen: boolean
   onClose: () => void
@@ -14,6 +14,8 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({ isOpen, onClose }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadCount } = useNotifications();
+
 
   const menuItems = [
     { id: "", label: "Dashboard", icon: Home },
@@ -94,8 +96,15 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({ isOpen, onClose }) => {
                     className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive(item.id) ? "animate-pulse" : ""}`}
                   />
                   <span className="font-medium">{item.label}</span>
-                  {item.id === "notifications" && (
-                    <div className="ml-auto w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  {item.id === "notifications" && unreadCount > 0 && (
+                    <div className="ml-auto flex items-center justify-center">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                      {unreadCount > 9 ? (
+                        <span className="ml-1 text-xs text-red-400 font-semibold">9+</span>
+                      ) : unreadCount > 1 ? (
+                        <span className="ml-1 text-xs text-red-400 font-semibold">{unreadCount}</span>
+                      ) : null}
+                    </div>
                   )}
                 </button>
               );

@@ -18,7 +18,8 @@ import {
     updateProfile, 
     changePassword, 
     deleteAccount,
-    uploadAvatar
+     uploadAvatar,
+    deleteAvatar
 } from '../controllers/user.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 
@@ -34,5 +35,7 @@ router.put('/profile', authenticate, updateProfile); // This route will handle t
 router.post('/profile/avatar', authenticate, upload.single('avatar'), uploadAvatar);
 router.post('/change-password', authenticate, changePassword);
 router.post('/delete-account', authenticate, deleteAccount);
+router.delete('/profile/avatar', authenticate, deleteAvatar);
+
 
 export default router;
