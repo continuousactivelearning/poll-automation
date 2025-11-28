@@ -22,6 +22,7 @@ const refreshToken = async () => {
     localStorage.setItem('token', token);
     return token;
   } catch (error) {
+    
     // Clear all tokens if refresh fails
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');

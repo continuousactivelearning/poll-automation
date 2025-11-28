@@ -1,7 +1,8 @@
 "use client"
 
 import type React from "react"
-import { Users, Trophy, History, User, Award, Settings, Bell, Home, LogOut, Link } from "lucide-react"
+import { Users, Trophy, History, User, Award, Bell, Home, LogOut, Link } from "lucide-react"
+
 import { useAuth } from "../contexts/AuthContext"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useNotifications } from "../contexts/NotificationContext"
@@ -25,7 +26,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({ isOpen, onClose }) => {
     { id: "profile", label: "Profile", icon: User },
     { id: "achievements", label: "Achievements", icon: Award },
     { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "settings", label: "Settings", icon: Settings },
+    // { id: "settings", label: "Settings", icon: Settings },
   ];
 
  const handleItemClick = (itemId: string) => {

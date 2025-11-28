@@ -9,7 +9,8 @@ import {
   Users,
   Trophy,
   FileText,
-  Settings,
+  // Settings,
+    User,
   LogOut,
   PlusSquare,
   Menu
@@ -49,7 +50,10 @@ const Sidebar = () => {
     { path: '/host/participants', icon: Users, label: 'Participants' },
     { path: '/host/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { path: '/host/reports', icon: FileText, label: 'Reports' },
-    { path: '/host/settings', icon: Settings, label: 'Settings' },
+    // { path: '/host/settings', icon: Settings, label: 'Settings' },
+        { path: '/host/profile', icon: User, label: 'Profile' },
+
+
   ];
 
   const sidebarContent = (

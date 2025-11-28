@@ -3,6 +3,9 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import { useNavigate } from 'react-router-dom'
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 import {
   User,
   Star,
@@ -16,6 +19,7 @@ import {
   Camera,
   Save,
   Trash2,
+  Lock,
 } from "lucide-react"
 import GlassCard from "../GlassCard"
 import { useAuth } from "../../contexts/AuthContext"
@@ -23,7 +27,7 @@ import { apiService } from "../../utils/api"
 import toast from 'react-hot-toast'
 
 const StudentProfilePage = () => {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const [activeTab, setActiveTab] = useState("overview")
   const [isLoading, setIsLoading] = useState(true)
 
@@ -45,6 +49,16 @@ const StudentProfilePage = () => {
   
   // Image upload state
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  
+  // Security state
+  const navigate = useNavigate()
+  const [passwordData, setPasswordData] = useState({ 
+    currentPassword: '', 
+    newPassword: '', 
+    confirmNewPassword: '' 
+  })
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
 
   // Load user profile and all related data
   const loadProfileData = async () => {
@@ -524,8 +538,97 @@ const StudentProfilePage = () => {
     }
   }
 
+  // Security functions
+  const handlePasswordChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      return toast.error("New passwords do not match.")
+    }
+    
+    const pwdToast = toast.loading('Changing password...')
+    try {
+      const api = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const response = await fetch(`${api}/users/change-password`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(passwordData),
+      })
+      const data = await response.json()
+      
+      // Dismiss loading toast first
+      toast.dismiss(pwdToast)
+      
+      if (!response.ok) {
+        // Show specific error for wrong current password
+        if (response.status === 401 || data.message?.toLowerCase().includes('current password')) {
+          return Swal.fire({
+            title: 'Incorrect Password',
+            text: 'The current password you entered is incorrect. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'Try Again',
+            background: '#1f2937',
+            color: '#ffffff',
+            confirmButtonColor: '#ef4444',
+            backdrop: `rgba(0,0,0,0.4)`
+          })
+        }
+        throw new Error(data.message)
+      }
 
+      // Password changed successfully - show success message and logout
+      await Swal.fire({
+        title: 'Password Changed!',
+        text: 'Your password has been updated successfully. You will be logged out now. Please login with your new password.',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        background: '#1f2937',
+        color: '#ffffff',
+        confirmButtonColor: '#10b981',
+        backdrop: `rgba(0,0,0,0.4)`
+      })
+      
+      // Clear password fields
+      setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' })
+      
+      // Logout user and redirect to login page
+      logout()
+      navigate('/login')
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to change password.')
+    }
+  }
+  
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return toast.error('Please type DELETE to confirm.')
+    if (!deletePassword) return toast.error('Please enter your current password to confirm deletion.')
+    
+    const delToast = toast.loading('Deleting account...')
+    try {
+      const api = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const response = await fetch(`${api}/users/delete-account`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ password: deletePassword }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message)
 
+      toast.success('Account deleted. Logging out...', { id: delToast, duration: 4000 })
+      setTimeout(() => {
+        logout()
+        navigate('/login')
+      }, 2000)
+    } catch (error: any) {
+      toast.error(error.message || 'Deletion failed.', { id: delToast })
+    }
+  }
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -914,13 +1017,93 @@ const StudentProfilePage = () => {
     )
   }
 
-
-
-
+  const renderSecurity = () => (
+    <div className="space-y-6">
+      <GlassCard className="p-6">
+        <form onSubmit={handlePasswordChangeSubmit}>
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-6">
+            <Lock className="w-5 h-5" /> 
+            Change Password
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Current Password</label>
+              <input 
+                type="password" 
+                required 
+                value={passwordData.currentPassword} 
+                onChange={(e) => setPasswordData(p => ({...p, currentPassword: e.target.value}))} 
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">New Password</label>
+              <input 
+                type="password" 
+                required 
+                value={passwordData.newPassword} 
+                onChange={(e) => setPasswordData(p => ({...p, newPassword: e.target.value}))} 
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Confirm New Password</label>
+              <input 
+                type="password" 
+                required 
+                value={passwordData.confirmNewPassword} 
+                onChange={(e) => setPasswordData(p => ({...p, confirmNewPassword: e.target.value}))} 
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+              />
+            </div>
+            <div className="text-right">
+              <button 
+                type="submit" 
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-6 py-2 rounded-lg text-white font-medium transition-all duration-200"
+              >
+                Update Password
+              </button>
+            </div>
+          </div>
+        </form>
+      </GlassCard>
+      
+      <GlassCard className="p-6 border-t-2 border-red-500/30">
+        <h3 className="text-lg font-bold text-red-400 flex items-center gap-2 mb-4">
+          <Trash2 className="w-5 h-5" /> 
+          Delete Account
+        </h3>
+        <p className="text-gray-400 text-sm mb-4">This action is permanent and cannot be undone.</p>
+        <div className="flex flex-col md:flex-row gap-4">
+          <input 
+            type="text" 
+            placeholder='Type "DELETE" to confirm' 
+            value={deleteConfirmText} 
+            onChange={e => setDeleteConfirmText(e.target.value)} 
+            className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50"
+          />
+          <input 
+            type="password" 
+            placeholder="Enter current password to confirm" 
+            value={deletePassword} 
+            onChange={e => setDeletePassword(e.target.value)} 
+            className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50"
+          />
+          <button 
+            onClick={handleDeleteAccount} 
+            className="w-full md:w-auto bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-2 rounded-lg text-white font-medium transition-all duration-200"
+          >
+            Delete My Account
+          </button>
+        </div>
+      </GlassCard>
+    </div>
+  )
 
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
     { id: "achievements", label: "Achievements", icon: Award },
+    { id: "security", label: "Security", icon: Lock },
   ]
 
   if (!user) {
@@ -992,6 +1175,7 @@ const StudentProfilePage = () => {
       >
         {activeTab === "overview" && renderOverview()}
         {activeTab === "achievements" && renderAchievements()}
+        {activeTab === "security" && renderSecurity()}
       </motion.div>
     </div>
   )
